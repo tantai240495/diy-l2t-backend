@@ -1,0 +1,136 @@
+# Copy to mcp-capabilities.yaml and adjust endpoint/auth metadata.
+# This file contains no credentials.
+
+servers:
+  company-gateway:
+    role: internal_gateway
+    transport: http
+    endpoint_hint: https://MCP_HOST/company-gateway/mcp
+
+    source_hosts:
+      backlog:
+        - backlog.company.example
+      mattermost:
+        - mattermost.company.example
+      offwork:
+        - offwork.company.example
+
+    capabilities:
+      backlog_teq:
+        read:
+          - teq_backlog_get_myself
+          - teq_backlog_get_project_list
+          - teq_backlog_get_project
+          - teq_backlog_get_users
+          - teq_backlog_get_priorities
+          - teq_backlog_get_categories
+          - teq_backlog_get_document_tree
+          - teq_backlog_get_document
+        missing_for_full_issue_flow:
+          - get_issue
+          - list_issue_comments
+          - search_issues
+          - add_issue_comment
+          - update_issue_status
+
+      backlog_finatext:
+        read:
+          - finatext_backlog_get_myself
+          - finatext_backlog_get_project_list
+          - finatext_backlog_get_project
+          - finatext_backlog_get_priorities
+          - finatext_backlog_get_categories
+        missing_for_full_issue_flow:
+          - get_issue
+          - list_issue_comments
+          - search_issues
+          - add_issue_comment
+          - update_issue_status
+
+      mattermost:
+        read:
+          - mattermost_get_team_info
+        write_after_approval:
+          - mattermost_add_user_to_channel
+        missing_for_request_flow:
+          - get_post
+          - get_thread
+          - search_posts
+          - list_channel_posts
+          - create_post
+          - reply_to_thread
+        forbidden:
+          - delete_post
+          - delete_channel
+          - admin_actions
+
+      offwork:
+        read:
+          - company_offwork_list_rewards
+          - company_offwork_get_my_offwork_requests
+        restricted_read:
+          - company_offwork_list_leader_o_4ee1d6ce12ef
+        write_after_approval:
+          - company_offwork_redeem_reward
+          - company_offwork_cancel_offwork_request
+        forbidden:
+          - admin_actions
+
+      github:
+        missing_for_full_pr_flow:
+          - get_repository
+          - get_issue
+          - list_issue_comments
+          - get_pull_request
+          - list_pull_request_comments
+          - search_code
+          - read_file
+          - create_branch
+          - create_commit
+          - push_branch
+          - create_draft_pull_request
+
+    hermes_exposure:
+      mode: allowlist
+      tools:
+        - teq_backlog_get_myself
+        - teq_backlog_get_project_list
+        - teq_backlog_get_project
+        - teq_backlog_get_users
+        - teq_backlog_get_priorities
+        - teq_backlog_get_categories
+        - teq_backlog_get_document_tree
+        - teq_backlog_get_document
+        - finatext_backlog_get_myself
+        - finatext_backlog_get_project_list
+        - finatext_backlog_get_project
+        - finatext_backlog_get_priorities
+        - finatext_backlog_get_categories
+        - mattermost_get_team_info
+        - company_offwork_list_rewards
+        - company_offwork_get_my_offwork_requests
+
+    claude_exposure:
+      read_tools:
+        - teq_backlog_get_myself
+        - teq_backlog_get_project_list
+        - teq_backlog_get_project
+        - teq_backlog_get_users
+        - teq_backlog_get_priorities
+        - teq_backlog_get_categories
+        - teq_backlog_get_document_tree
+        - teq_backlog_get_document
+        - finatext_backlog_get_myself
+        - finatext_backlog_get_project_list
+        - finatext_backlog_get_project
+        - finatext_backlog_get_priorities
+        - finatext_backlog_get_categories
+        - mattermost_get_team_info
+        - company_offwork_list_rewards
+        - company_offwork_get_my_offwork_requests
+      approval_tools:
+        - mattermost_add_user_to_channel
+        - company_offwork_redeem_reward
+        - company_offwork_cancel_offwork_request
+      restricted_read_tools:
+        - company_offwork_list_leader_o_4ee1d6ce12ef

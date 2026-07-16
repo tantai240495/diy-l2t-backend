@@ -1,0 +1,42 @@
+default_provider: claude-code
+
+projects:
+  shop-web:
+    name: Shop Web
+    repo: company/shop-web
+    local_path: /ABSOLUTE/PATH/TO/shop-web
+    default_branch: main
+    provider: claude-code
+
+    source_mapping:
+      gateway_server: company-gateway
+      backlog_project_key: SHOP
+      mattermost_channels:
+        - frontend
+        - customer-support
+      github_repository: company/shop-web
+      github_enabled: false
+
+    commands:
+      install: pnpm install
+      lint: pnpm lint
+      test: pnpm test
+      integration_test: pnpm test:integration
+      build: pnpm build
+
+    allowed_paths:
+      - src/**
+      - tests/**
+
+    forbidden_paths:
+      - infrastructure/**
+      - .github/workflows/deploy*
+
+    policies:
+      require_regression_test: true
+      create_draft_pr_only: true
+      allow_merge: false
+      allow_deploy: false
+      allow_dependency_changes: ask
+      allow_mattermost_post: ask
+      allow_backlog_update: ask
