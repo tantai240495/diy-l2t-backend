@@ -4,9 +4,10 @@ version = "0.1.0"
 description = ""
 authors = ["Tai La <tantai240495@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.13"
 fastapi = "^0.115.2"
 
 
