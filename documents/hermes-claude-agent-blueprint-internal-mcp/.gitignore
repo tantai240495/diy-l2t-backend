@@ -1,5 +1,0 @@
-.env
-config/projects.yaml
-jobs/*
-!jobs/.gitkeep
-**/settings.local.json
