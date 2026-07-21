@@ -52,9 +52,9 @@ channel/post/thread/search reads và các mutation tools riêng biệt.
 
 CP0 không chứng minh Hermes đã được cài hoặc workflow mới đã chạy.
 
-## Active Checkpoint: CP1 — Upstream Hermes local baseline
+## Checkpoint đã đóng: CP1 — Upstream Hermes local baseline
 
-Status: `active`
+Status: `verified`
 
 ### Câu hỏi
 
@@ -91,19 +91,37 @@ Từ repository root, có một hướng dẫn ngắn và reproducible để:
 
 ### Checks
 
-- [ ] `hermes --version` hoặc command tương đương trả version rõ ràng.
-- [ ] Hermes chạy trực tiếp từ upstream installation.
-- [ ] Profile/state directory của trợ lý tách khỏi source repository.
-- [ ] Một prompt local nhận final response thành công.
-- [ ] Session và runtime log có thể được tìm thấy.
-- [ ] Không có secret mới trong git diff.
-- [ ] Exact install/run commands được ghi lại.
-- [ ] Người dùng quyết định verify/revise/pause/replace.
+- [x] `hermes --version` hoặc command tương đương trả version rõ ràng.
+- [x] Hermes chạy trực tiếp từ upstream installation.
+- [x] Profile/state directory của trợ lý tách khỏi source repository.
+- [x] Một prompt local nhận final response thành công.
+- [x] Session và runtime log có thể được tìm thấy.
+- [x] Không có secret mới trong git diff.
+- [x] Exact install/run commands được ghi lại.
+- [x] Người dùng quyết định verify/revise/pause/replace.
 
 ### Evidence
 
-Chưa chạy. Không đánh dấu checkpoint này completed chỉ vì tài liệu Hermes nói
-capability tồn tại.
+Đã verify ngày 2026-07-21:
+
+- Hermes Agent `v0.19.0 (2026.7.20)`, upstream commit
+  `f4df260f26c93f15694698869f3ea8e965eea301`;
+- upstream installation ở `~/.hermes/hermes-agent`, CLI ở
+  `~/.local/bin/hermes`;
+- profile riêng `diy-l2t` ở `~/.hermes/profiles/diy-l2t`;
+- provider/model `openai-codex` / `gpt-5.5`, dùng OAuth session riêng;
+- one-shot prompt trả `CP1_HERMES_OK`, session
+  `20260721_153325_4fcd8a`;
+- session list, `state.db` và `logs/agent.log` cùng xác nhận session trên;
+- repository secret scan không phát hiện credential và Git chỉ có tài liệu tiến
+  độ thay đổi;
+- exact commands và evidence chi tiết nằm trong `PROGRESS.md`;
+- người dùng quyết định `verify`.
+
+Observation không chặn CP1: smoke prompt dùng 15,840 tokens do baseline context
+lớn; cần cân nhắc tool/skill scope ở checkpoint phù hợp, không tối ưu trong CP1.
+
+Hiện không có checkpoint `active`. Không tự kích hoạt CP2 chỉ vì CP1 đã verified.
 
 ## Candidate Checkpoints
 
