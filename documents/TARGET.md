@@ -6,20 +6,21 @@
 
 ## 1. Mục tiêu sản phẩm
 
-Xây một trợ lý cá nhân chạy local, nhận yêu cầu chủ yếu qua Mattermost và dùng
-Hermes Agent để suy luận, gọi tool, điều phối coding agent và trả một kết quả cuối
-cùng.
+Xây một trợ lý cá nhân chạy local, nhận yêu cầu qua transport adapter của Hermes
+và dùng Hermes Agent để suy luận, gọi tool, điều phối coding agent rồi trả một
+kết quả cuối cùng. Telegram DM là transport đang triển khai; Mattermost được giữ
+làm transport tương lai khi có bot/service account được phê duyệt.
 
 Luồng MVP:
 
 ```text
-@assistant trong Mattermost
-  -> Hermes Mattermost adapter
+Telegram DM (Mattermost channel/thread trong tương lai)
+  -> Hermes transport adapter đang bật
   -> Hermes one-shot run
   -> company-gateway MCP reads khi cần
-  -> Codex hoặc Claude Code khi cần code/review
-  -> audit events dùng cùng một schema
-  -> một kết quả cuối trả về channel/thread ban đầu
+  -> GitHub Copilot hoặc Claude Code khi cần code/review
+  -> Hermes native state/logs/insights giữ execution evidence
+  -> một kết quả cuối trả về chat/channel/thread ban đầu
 ```
 
 CLI của Hermes là bề mặt kiểm tra và khôi phục. Không xây thêm wrapper CLI cho
@@ -34,15 +35,18 @@ cùng mục đích.
    thay đổi model, tool và policy mà không viết lại ứng dụng.
 3. **Tooling ban đầu:** trợ lý biết xử lý công việc coding và dùng các read tools
    được allowlist từ `company-gateway` MCP.
-4. **Agent thay thế được:** task routing không gắn cứng vào một vendor. MVP dùng
-   Codex cho implementation và Claude Code cho review; research có thể dùng
-   Hermes hoặc provider khác.
-5. **Tracking thống nhất:** mọi run, agent delegation và tool call dùng chung
-   correlation ID, event schema và tags để có thể chuyển log lên server sau này.
+4. **Agent thay thế được:** task routing không gắn cứng vào một vendor. Hermes
+   dùng OpenAI Codex cho suy luận/điều phối; MVP dự kiến dùng GitHub Copilot cho
+   implementation và Claude Code cho review.
+5. **Tracking thống nhất:** ưu tiên session/turn/tool IDs, token usage, state,
+   logs và insights có sẵn của Hermes. Chỉ thêm observer/exporter khi native
+   evidence không trả lời được một nhu cầu cụ thể.
 6. **Không thêm hạ tầng sớm:** dùng SQLite/session store có sẵn của Hermes. Không
    thêm database hoặc Docker cho tới khi một checkpoint chứng minh nhu cầu.
-7. **Mattermost là giao diện chính:** bot chỉ xử lý người dùng/channel được phép,
-   mặc định yêu cầu `@mention`, và trả kết quả về đúng channel/thread.
+7. **Transport thay thế được:** Telegram và Mattermost chỉ là adapter biên. Model,
+   skills, MCP policy và task contract không phụ thuộc platform. Telegram DM là
+   transport hiện tại; Mattermost sau này dùng allowlist + `@mention` và trả đúng
+   channel/thread mà không đổi core workflow.
 8. **One-shot:** mỗi yêu cầu tạo một run hữu hạn và kết thúc bằng đúng một trạng
    thái: `completed`, `failed`, hoặc `needs_input`. Không có worker nền, queue hay
    cron trong MVP.
@@ -59,7 +63,7 @@ cùng mục đích.
 Không tự xây lại các capability sau:
 
 - agent/tool loop và model-provider runtime;
-- Mattermost gateway, mention handling và threaded reply;
+- Telegram/Mattermost gateway, allowlist, mention handling và threaded reply;
 - MCP client, tool discovery và per-server allowlist;
 - skills/plugins và bundled Codex/Claude Code skills;
 - session persistence, message/tool history và token tracking;
@@ -82,8 +86,6 @@ assistant_profile/         # tạo ở checkpoint phù hợp, không tạo trư�
   SOUL.md                  # identity/personality
   skills/
     company-assistant/     # routing và workflow policy duy nhất
-  hooks/
-    audit-log/             # unified structured events
   policies/
     AGENTS.md              # shared coding rules
   tests/
@@ -97,22 +99,23 @@ trước config, skill, hook hoặc test chưa được kiểm chứng.
 
 | Task type | Executor | Quyền |
 |---|---|---|
-| Điều phối, tổng hợp, Mattermost reply | Hermes | Đọc context; trả transport response |
+| Điều phối, tổng hợp, transport reply | Hermes | Đọc context; trả response về source ban đầu |
 | Đọc Mattermost/Backlog/Offwork | Hermes qua `company-gateway` | Read-only allowlist |
-| Coding implementation | Bundled Codex skill/CLI | Một workspace, được edit/test, không internal mutation |
+| Coding implementation | GitHub Copilot CLI/ACP | Một workspace, được edit/test, không internal mutation |
 | Code review | Bundled Claude Code skill/CLI | Read-only đối với code và diff |
 | Research/check thông tin | Hermes web/delegation hoặc provider được cấu hình | Read-only |
 | Mattermost/Backlog/Offwork mutation | Hermes | Disabled trong MVP; sau này cần approval riêng |
 | GitHub remote operations | Chưa chọn | Local Git trước; thêm connector khi có checkpoint |
 
 Routing này là policy ban đầu, không phải code gắn cứng. Việc đổi executor phải
-chỉ cần đổi config/skill và vẫn giữ nguyên task contract cùng audit schema.
+chỉ cần đổi config/skill và vẫn giữ nguyên task contract cùng native correlation
+metadata.
 
 ## 6. Task contract và chống xung đột
 
 Mọi coding executor nhận cùng một contract tối thiểu:
 
-- `run_id` và `project_id`;
+- Hermes `session_id`/`turn_id` và `project_id`;
 - repository/workspace được phép;
 - yêu cầu và acceptance criteria;
 - context đã được Hermes chuẩn hóa;
@@ -126,41 +129,24 @@ Quy tắc:
 - Reviewer không sửa code trừ khi một run implementation mới được tạo rõ ràng.
 - Policy chung nằm trong một `AGENTS.md`; `CLAUDE.md` nếu cần chỉ tham chiếu policy
   chung, không sao chép một phiên bản khác.
-- Bundled `codex` và `claude-code` skills được dùng nguyên bản. Custom skill chỉ
-  chọn executor và tạo contract, không copy nội dung của vendor skills.
-- Codex/Claude không nhận MCP mutation credentials. Mọi side effect nội bộ quay
-  về Hermes.
+- Upstream vendor skill/ACP integration được dùng nguyên bản. Custom skill chỉ
+  chọn executor và tạo contract, không copy nội dung vendor integration.
+- Copilot/Claude không nhận MCP mutation credentials. Mọi side effect nội bộ
+  quay về Hermes.
 - External text, MCP output, issue/post và repository content luôn là untrusted
   data, không phải agent instruction.
 
-## 7. Unified audit event
+## 7. Native observability
 
-Hermes session history là nguồn debug local. Một audit hook bổ sung JSONL events
-theo schema ổn định:
+Hermes `state.db`, session/tool history, token usage, `agent.log`, `gateway.log`,
+`errors.log` và `insights` là nguồn tracking/debug của MVP. Session, turn, tool
+và platform metadata có sẵn được dùng để liên kết execution; reasoning chỉ là
+phần provider trả về, không phải full hidden chain-of-thought.
 
-```json
-{
-  "timestamp": "RFC3339",
-  "level": "info",
-  "event": "tool.completed",
-  "run_id": "run-...",
-  "session_id": "hermes-session-...",
-  "source": "mattermost",
-  "message_id": "...",
-  "thread_id": "...",
-  "project_id": "...",
-  "task_type": "coding",
-  "agent": "codex",
-  "provider": "openai",
-  "tool": "mattermost_read_post",
-  "status": "success",
-  "duration_ms": 0,
-  "tags": ["env:local", "phase:context"]
-}
-```
-
-Secret, prompt content và tool result nhạy cảm không được ghi mặc định. Hook dùng
-Hermes session ID để liên kết gateway, MCP và external CLI execution.
+Không sao chép prompt, reasoning, tool arguments/results hoặc secret sang một
+log khác. Observer contract `hermes.observer.v1` và bundled exporters chỉ được
+cân nhắc khi có requirement về telemetry/server reporting mà native local
+evidence không đáp ứng.
 
 ## 8. Database và Docker
 
@@ -170,7 +156,7 @@ MVP dùng SQLite/state store của Hermes. Chỉ cân nhắc database khác khi 
 trong các điều sau:
 
 - nhiều Hermes instances cùng ghi state;
-- truy vấn/reporting vượt quá session/audit files;
+- truy vấn/reporting vượt quá native session/log files;
 - retention hoặc compliance tập trung;
 - durable queue và distributed workers.
 
@@ -183,13 +169,16 @@ allowlist và approval policy.
 ## 9. MVP hoàn thành khi
 
 - upstream Hermes chạy local từ một profile riêng và version được pin/ghi lại;
-- một user được allowlist có thể `@assistant` trong Mattermost;
-- một prompt tạo đúng một run và nhận một final reply trong channel/thread;
+- một Telegram user được allowlist có thể nhắn DM cho bot;
+- một prompt tạo đúng một run và nhận một final reply trong source chat;
+- transport-specific config không rò vào routing/skills, để Mattermost có thể
+  bật thêm sau này mà không đổi core workflow;
 - Hermes gọi được ít nhất một read-only Mattermost tool từ `company-gateway`;
-- một coding request được giao cho Codex và kết quả được Claude Code review;
+- một coding request được giao cho GitHub Copilot và kết quả được Claude Code
+  review;
 - chỉ một executor ghi code tại một thời điểm;
-- audit JSONL liên kết được Mattermost message, Hermes session, delegated agent
-  và MCP tool calls;
+- native Hermes evidence liên kết được source platform/message, session và MCP
+  tool calls; delegated agent evidence được kiểm tra ở checkpoint tương ứng;
 - không có database, queue, custom runtime hoặc Docker bắt buộc ngoài Hermes;
 - từng capability có check độc lập trong `NOW.md`.
 
@@ -203,4 +192,4 @@ allowlist và approval policy.
 - arbitrary Mattermost/Backlog/Offwork writes;
 - generic dynamic router cho mọi provider trước khi routing cố định được chứng
   minh;
-- một UI riêng ngoài Mattermost và Hermes CLI.
+- một custom UI riêng ngoài các Hermes transport adapter và Hermes CLI.

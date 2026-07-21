@@ -9,7 +9,7 @@ Roadmap chỉ chứa lựa chọn sau MVP. Trình tự đang làm nằm trong `.
 - `company-gateway` là internal MCP boundary;
 - one-shot và local-first;
 - Codex implementation, Claude Code review là routing ban đầu;
-- Hermes sở hữu side effects và audit correlation;
+- Hermes sở hữu side effects và native execution correlation;
 - không thêm database/Docker khi chưa có evidence.
 
 Các quyết định trên chỉ thay đổi khi một checkpoint ghi rõ lý do và người dùng
@@ -27,7 +27,7 @@ chọn `replace`.
 
 ### Thêm controlled mutations
 
-Chỉ thêm từng action với approval và audit riêng:
+Chỉ thêm từng action với approval và native execution evidence riêng:
 
 - Mattermost post/DM/update ngoài final transport reply;
 - Backlog comment/status update;
@@ -52,7 +52,7 @@ Chỉ phát triển generic router sau khi fixed routing tạo đủ execution e
 - always-on server deployment;
 - centralized secret manager;
 - log shipping/OpenTelemetry mapping;
-- retention và searchable audit store;
+- retention và searchable telemetry store;
 - backup/restore profile và Hermes SQLite;
 - multi-profile hoặc multi-instance isolation.
 

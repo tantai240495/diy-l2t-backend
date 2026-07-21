@@ -12,7 +12,8 @@ make setup
 
 The selected direction is to run upstream `nousresearch/hermes-agent` as the
 assistant runtime and keep only project-specific profile, policy, MCP routing,
-audit hooks, and verification in this repository.
+and verification in this repository. Runtime tracking uses Hermes native state,
+logs, insights, and observer contract.
 
 Start with `documents/README.md`. `documents/NOW.md` contains the single active
 checkpoint. Hermes-specific profile, skills, hooks, and tests will be added only

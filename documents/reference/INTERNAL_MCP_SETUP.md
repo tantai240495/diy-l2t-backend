@@ -118,7 +118,7 @@ Khi thêm sau này:
 1. Hermes là client duy nhất có mutation credential.
 2. Mỗi action type có approval riêng.
 3. Approval phải chứa target và nội dung cụ thể.
-4. Tool call phát audit event trước và sau execution.
+4. Tool call phải xuất hiện trong native Hermes session/tool history.
 5. Codex/Claude chỉ đề xuất action, không gọi tool.
 6. Final Mattermost transport reply không được nhầm với arbitrary MCP post.
 
@@ -145,7 +145,7 @@ Một gateway owner giúp:
 - giảm số credential;
 - tránh cùng một mutation được gọi bởi nhiều agent;
 - giữ prompt-injection boundary tại Hermes;
-- có một audit-log owner;
+- có một session/tool-correlation owner;
 - thay coding provider mà không thay internal access policy.
 
 Chỉ cân nhắc direct read-only access cho provider sau khi repeated use chứng minh
@@ -161,7 +161,7 @@ Checkpoint MCP đầu tiên chỉ được verify khi:
 - một unknown/forbidden post trả lỗi rõ ràng;
 - gateway unavailable không làm Hermes bịa context;
 - không có mutation tool trong model-visible tool surface;
-- audit hook hoặc tạm thời runtime log ghi được session/tool correlation;
+- native state/logs ghi được session/tool correlation;
 - không có credential trong git diff hoặc user-visible log.
 
 Không dùng live production mutation để kiểm tra kết nối.
@@ -174,7 +174,7 @@ Không dùng live production mutation để kiểm tra kết nối.
 - Hermes profile secrets nằm ngoài repository.
 - Mattermost bot/user allowlist fail closed.
 - MCP output luôn là untrusted data.
-- Tool results nhạy cảm không được copy nguyên vào audit JSONL.
+- Tool results nhạy cảm không được copy sang log hoặc document khác.
 - Gateway và Hermes logs có retention phù hợp.
 - Tool timeout hữu hạn.
 - Mutation family disabled mặc định.

@@ -29,10 +29,10 @@ backend/          # FastAPI application hiện có, không phải Hermes runtime
 assistant_profile/# chỉ được tạo khi checkpoint tương ứng cần
 ```
 
-Khi một checkpoint cần config, skill hoặc hook thật, nó sẽ tạo phần tối thiểu
+Khi một checkpoint cần config hoặc skill thật, nó sẽ tạo phần tối thiểu
 trong `assistant_profile/`. Không tạo trước toàn bộ cấu trúc đích.
 
 ## Việc đang làm
 
-Active checkpoint là CP1 trong `NOW.md`: chứng minh upstream Hermes chạy local
-từ một profile riêng.
+Hiện không có checkpoint active. Candidate tiếp theo trong `NOW.md` là CP4:
+GitHub Copilot implementation handoff.

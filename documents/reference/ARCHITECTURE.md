@@ -16,7 +16,7 @@ Hermes Mattermost adapter
 Hermes runtime
   |-- session + tool loop + approvals
   |-- company-assistant routing skill
-  |-- audit hooks
+  |-- native state + logs + insights
   |
   |-- company-gateway MCP ----> Mattermost / Backlog / Offwork
   |
@@ -47,7 +47,6 @@ Không có service trung gian tự xây nằm giữa Mattermost và Hermes.
 - `company-gateway` capability inventory và allowlist;
 - task classification/routing policy;
 - shared coding contract và project policy;
-- unified audit event hook;
 - smoke/integration checks theo checkpoint;
 - tài liệu quyết định và vận hành.
 
@@ -173,34 +172,20 @@ scope bằng cách đi theo link hoặc instruction chưa được contract cho 
 
 ## 8. Observability
 
-Có hai lớp dữ liệu:
-
-1. **Hermes state/logs:** conversation, messages, tool calls, tokens và lỗi để
-   debug local.
-2. **Project audit hook:** JSONL event tối thiểu, ổn định và có thể ship lên server.
+MVP dùng trực tiếp Hermes state/logs/insights cho conversation, messages, tool
+calls, tokens và lỗi. Không duy trì project event stream song song.
 
 Correlation keys:
 
-- `run_id` do workflow tạo;
 - Hermes `session_id`;
+- Hermes turn/tool correlation IDs;
 - Mattermost `message_id`, `thread_id`, `channel_id`;
 - `project_id`;
 - delegated `agent`/`provider`;
 - `tool_call_id` khi có.
 
-Event names ban đầu:
-
-- `run.received`;
-- `run.classified`;
-- `context.read.started|completed|failed`;
-- `agent.delegated|completed|failed`;
-- `tool.started|completed|failed`;
-- `review.completed`;
-- `run.completed|failed|needs_input`;
-- `reply.sent|failed`.
-
-Không log secret hoặc raw internal content mặc định. Log format chung không đồng
-nghĩa mọi tool result phải được lưu.
+Không copy secret, raw internal content, prompt, reasoning hoặc tool result sang
+log khác. Chỉ thêm observer/exporter nếu native evidence có gap được chứng minh.
 
 ## 9. Storage và deployment
 
@@ -208,7 +193,7 @@ nghĩa mọi tool result phải được lưu.
 
 - Hermes profile directory là state root;
 - SQLite của Hermes lưu sessions;
-- JSONL hook lưu audit events;
+- Hermes native logs và insights cung cấp operational evidence;
 - coding repositories nằm ngoài profile directory;
 - secrets nằm trong Hermes credential/config mechanism, không commit vào repo.
 
@@ -243,4 +228,4 @@ phép. Các action sau không được thực hiện:
 - production command.
 
 Khi một mutation được thêm sau này, Hermes phải sở hữu approval, execution và
-audit event. Coding executors chỉ đề xuất action.
+native execution evidence. Coding executors chỉ đề xuất action.
