@@ -5,13 +5,14 @@
 
 ## Trạng thái tổng quát
 
-- Cập nhật gần nhất: 2026-07-21
-- Checkpoint: chưa có; candidate tiếp theo là CP4 — GitHub Copilot implementation
+- Cập nhật gần nhất: 2026-07-22
+- Checkpoint: chưa có; candidate tiếp theo là CP5 — independent code verification
+  and review
 - Trạng thái checkpoint theo `NOW.md`: không có checkpoint `active`
 - Trạng thái làm việc: `checkpoint_ready`
-- Người thực hiện thay đổi chức năng: người dùng
-- Vai trò của Codex trong phiên này: hướng dẫn, kiểm tra evidence và cập nhật file
-  tiến độ
+- Người thực hiện thay đổi chức năng: người dùng; CP4 đã đóng
+- Vai trò của Codex `gpt-5.5` trong phiên này: hướng dẫn, kiểm tra evidence và cập
+  nhật file tiến độ; không tự kích hoạt CP5
 
 ## Mục tiêu đã hiểu
 
@@ -40,6 +41,12 @@ Mattermost content không được ghi vào repository.
 Observability MVP dùng trực tiếp `state.db`, session/tool history, token usage,
 native logs và `insights` của Hermes. Không tạo project event stream song song;
 chỉ cân nhắc observer/exporter nếu checkpoint sau chứng minh gap cụ thể.
+
+Coding workflow được người dùng chốt theo ba role tách context: Copilot ACP làm
+implementation, reviewer được bind bằng config tự verify/review bắt buộc, và
+Hermes/Codex `gpt-5.5` chỉ điều hướng/tổng hợp structured results. CP4 chứng minh
+implementation handoff; CP5 chứng minh independent verification/review; CP6 mã
+hóa workflow theo intent trong custom routing skill.
 
 ## Evidence ban đầu
 
@@ -249,6 +256,27 @@ chọn `verify`; CP3 đã đóng. Hiện chưa có checkpoint `active`.
 | Bundled observability | Langfuse và NeMo Relay consumers có sẵn nhưng opt-in; profile hiện chưa có evidence chúng được enable | available, not active |
 | MVP decision | Dùng native state/logs/insights; chỉ thêm observer/exporter khi có gap cụ thể | accepted |
 
+## Evidence CP4 đến hiện tại
+
+| Hạng mục | Kết quả | Trạng thái |
+|---|---|---|
+| Copilot CLI | GitHub Copilot CLI `1.0.73`; login thành công | pass prerequisite |
+| ACP direct smoke | `copilot-acp` trả expected marker; model thực tế hiển thị `claude-sonnet-5` | pass transport/model discovery |
+| Hermes runtime | Đã cập nhật managed checkout lên upstream `d8bf3df2`; profile vẫn dùng `openai-codex` / `gpt-5.5` cho parent | pass current baseline |
+| Delegation binding | Profile route child qua `copilot-acp`; concurrency/depth đều giới hạn `1` | pass bounded child setup |
+| Workspace | `/private/tmp/diy-l2t-cp4-smoke` là Git repo tách biệt, không remote; baseline có hai failing tests | pass isolation baseline |
+| Tool surface | Copilot ACP chỉ được expose bounded file/terminal tools; GitHub MCP, web và agent-delegation tools bị disable | pass role boundary |
+| Implementation evidence | Delegated transcript ghi Copilot đọc đúng allowlisted files và patch duy nhất `calculator.py` từ subtraction sang addition | pass implementation handoff |
+| Workspace result | Manual diagnostic sau handoff thấy chỉ `calculator.py` thay đổi và exact unittest command chạy 2 tests, `OK` | pass functional checkpoint evidence |
+| Child shell observability | Live delegated transcript không giữ raw terminal invocation/result dù async child summary claim success | observed gap; không còn là CP4 acceptance, CP5 reviewer sẽ sở hữu independent checks |
+| Forbidden actions | Không có network, Git remote, commit, push, PR, merge, deploy hoặc internal MCP mutation trong smoke | pass |
+| Context isolation | Upstream delegate runtime tạo fresh child conversation; parent nhận delegation call/summary, full transcript chỉ được đọc khi diagnostic | pass runtime capability; happy-path policy chờ CP6 |
+
+CP4 đã `verified` ngày 2026-07-22: final workspace chỉ đổi `calculator.py`, exact
+unittest command chạy 2 tests `OK`, không có remote, secret-pattern scan clear,
+repository `git diff --check` pass và người dùng chấp nhận evidence. CP5 chưa
+được kích hoạt.
+
 ## Decision log
 
 | Ngày | Quyết định | Lý do/evidence |
@@ -279,13 +307,21 @@ chọn `verify`; CP3 đã đóng. Hiện chưa có checkpoint `active`.
 | 2026-07-21 | Tiếp tục CP3 mà không rotate gateway headers | Người dùng đã được thông báo vị trí lộ, chấp nhận rủi ro và yêu cầu không để secret xuất hiện lại |
 | 2026-07-21 | Verify CP3 | Connection, strict read-only policy, positive/negative/untrusted-data tests, metadata và repository checks đều pass; người dùng chấp nhận evidence |
 | 2026-07-21 | Dùng native Hermes observability cho MVP | State, logs, insights, token/tool history và observer contract đã đủ baseline; không tạo extension hoặc event store song song |
+| 2026-07-22 | Tách context theo role | Hermes delegated child dùng fresh conversation; implementation/reviewer chỉ chia sẻ bounded contract, structured result và workspace artifact, không full parent history/reasoning |
+| 2026-07-22 | Cố định coding flow có mandatory reviewer | GitHub Copilot ACP implementation → independent verification/review → Hermes `gpt-5.5` route/tổng hợp final |
+| 2026-07-22 | Chuyển required-check ownership sang CP5 reviewer | CP4 chỉ chứng minh implementation handoff; reviewer phải tự chạy checks và không tin implementation self-report như final evidence |
+| 2026-07-22 | Giữ reviewer replaceable | Binding ban đầu dự kiến `gpt-5.6-sol`; có thể đổi sang Claude/model khác bằng config mà không đổi workflow contract |
+| 2026-07-22 | Dành custom workflow routing cho CP6 | `company-assistant` skill sẽ route theo intent; coding bắt buộc review, non-coding có workflow/review policy riêng |
+| 2026-07-22 | Verify CP4 | Copilot ACP implementation handoff, isolated workspace, bounded tool/context scope, expected patch, manual functional check, forbidden-action checks và repository closure checks đều pass; người dùng chấp nhận evidence |
 
 ## Câu hỏi chưa chặn bước hiện tại
 
-- Trước checkpoint coding, phải xác minh Copilot CLI/ACP; CP4 đã đổi tên/policy
-  nhưng chưa được activate hoặc chứng minh runtime.
-- Trước CP4/CP5 cần đặt giới hạn context/checks để không gửi toàn repository hoặc
-  test log không cần thiết sang Copilot/Claude.
+- CP5 phải xác minh cách bind `gpt-5.6-sol` thành reviewer child fresh-context;
+  Claude/model khác vẫn là replacement candidate, không hardcode vào workflow.
+- CP5 phải chọn bounded check output để reviewer không nhận toàn repository hoặc
+  test log không cần thiết.
+- CP6 phải quyết định skill-only enforcement đã đủ hay cần hook/plugin để chặn
+  coding final khi chưa có `ReviewResult.status=approved`.
 - Telegram/Mattermost tokens nằm trong profile local `.env`; cần quyết định cơ
   chế backup/rotation ở checkpoint hardening, không đưa secret vào Git.
 
@@ -403,3 +439,20 @@ chọn `verify`; CP3 đã đóng. Hiện chưa có checkpoint `active`.
 - 2026-07-21: metadata-only inspection xác nhận session Codex hiện tại có dữ
   liệu reasoning do provider trả về và Codex reasoning items; không đọc nội
   dung. Đây không phải bằng chứng Hermes có thể thu full hidden chain-of-thought.
+- 2026-07-22: CP4 environment discovery xác nhận Copilot CLI `1.0.73`, login,
+  direct ACP model `claude-sonnet-5`, bounded delegation config và isolated smoke
+  workspace không remote.
+- 2026-07-22: nhiều delegated smokes xác nhận Copilot đọc allowlisted files và
+  chỉ patch `calculator.py`; manual exact unittest diagnostic chạy 2 tests `OK`.
+  Raw child terminal event không xuất hiện trong live delegation transcript dù
+  async summary claim success.
+- 2026-07-22: người dùng revise kiến trúc: không dùng GPT-5.5 làm code verifier.
+  CP4 sở hữu implementation handoff; CP5 reviewer fresh-context tự chạy required
+  checks và review bắt buộc; CP6 custom skill enforce intent-specific workflow.
+- 2026-07-22: reviewer binding ban đầu dự kiến `gpt-5.6-sol`, có thể thay bằng
+  Claude/model khác. GPT-5.5 chỉ phân loại, route, xử lý structured status và
+  tổng hợp final response.
+- 2026-07-22: final CP4 closure checks pass: smoke workspace chỉ đổi
+  `calculator.py`, không có Git remote, exact unittest chạy 2 tests `OK`,
+  repository chỉ đổi bốn file tài liệu, secret-pattern scan clear và
+  `git diff --check` sạch. Người dùng chọn `verify`; CP4 đóng, CP5 chưa active.

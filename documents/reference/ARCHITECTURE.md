@@ -20,9 +20,9 @@ Hermes runtime
   |
   |-- company-gateway MCP ----> Mattermost / Backlog / Offwork
   |
-  |-- bundled Codex skill ----> Codex CLI ----> coding workspace
+  |-- Copilot ACP ------------> implementation --> coding workspace
   |
-  `-- bundled Claude skill ---> Claude Code --> read-only review
+  `-- configured reviewer ----> verify + review --> structured ReviewResult
 ```
 
 Không có service trung gian tự xây nằm giữa Mattermost và Hermes.
@@ -112,25 +112,41 @@ Routing policy thuộc custom Hermes skill, không thuộc runtime code.
 
 | Intent | Route ban đầu |
 |---|---|
-| Implement code | Hermes gọi bundled Codex skill |
-| Review code/diff | Hermes gọi bundled Claude Code skill ở read-only mode |
+| Implement code | Hermes giao một bounded contract cho GitHub Copilot CLI/ACP |
+| Verify/review code | Hermes tạo reviewer child mới; binding ban đầu là `gpt-5.6-sol`, có thể đổi sang Claude |
 | Research/check thông tin | Hermes dùng read tools hoặc delegated provider được cấu hình |
 | Đọc internal context | Hermes gọi `company-gateway` read tool |
 | Internal mutation | Không cho phép trong MVP |
 
-Codex và Claude Code là external executors, không phải control plane. Hermes chọn
-executor, truyền task contract và tổng hợp kết quả.
+Implementation agent và reviewer là external executors, không phải control
+plane. Hermes chọn workflow, truyền task contract/structured handoff và tổng hợp
+kết quả. Mọi coding task phải qua reviewer độc lập trước final success.
 
 Để thay agent sau này, routing chỉ thay executor binding:
 
 ```yaml
 routes:
-  coding.implement: codex
-  coding.review: claude-code
+  coding.implement: copilot-acp
+  coding.review: reviewer-default
   research.verify: hermes-default
+
+bindings:
+  reviewer-default: gpt-5.6-sol
 ```
 
-Schema, approval policy, logs và output contract không thay đổi theo vendor.
+Đây là schema định hướng cho routing skill, không khẳng định là upstream Hermes
+config schema. Schema, approval policy, logs và output contract không thay đổi
+theo vendor.
+
+Coding workflow cố định:
+
+```text
+implement
+  -> review_and_verify
+  -> approved ---------------------------------> completed
+  -> changes_requested -> bounded re-implement -> review_and_verify
+  -> blocked ----------------------------------> needs_input | failed
+```
 
 ## 6. Chống xung đột giữa skills và agents
 
@@ -140,10 +156,11 @@ Schema, approval policy, logs và output contract không thay đổi theo vendor
 2. **Một code writer:** trong một run chỉ implementation executor được ghi code.
 3. **Một shared policy:** coding rules nằm trong `AGENTS.md`. File riêng của
    vendor nếu bắt buộc chỉ thêm compatibility instructions, không lặp policy.
-4. **Skills có namespace:** `company-assistant` chỉ điều phối; bundled `codex` và
-   `claude-code` skills chỉ thực thi phần vendor-specific.
-5. **Tool scope theo role:** Hermes có MCP reads; Codex edit/test trong workspace;
-   Claude review read-only; không executor nào có internal mutation credentials.
+4. **Skills có namespace:** `company-assistant` chỉ điều phối workflow; vendor
+   skills/ACP integrations chỉ thực thi phần provider-specific.
+5. **Tool scope theo role:** Hermes/GPT-5.5 route và tổng hợp; Copilot edit/self-
+   test trong workspace; reviewer đọc diff và chạy safe required checks nhưng
+   không sửa tracked files; không executor nào có internal mutation credentials.
 6. **Artifacts có owner:** executor trả kết quả cho Hermes; không nhiều agent
    cùng sửa một status/log/result artifact.
 
@@ -169,6 +186,15 @@ untrusted input. Chúng có thể cung cấp facts nhưng không được thay �
 
 Hermes chuẩn hóa context trước khi gọi coding executor. Executor không tự mở rộng
 scope bằng cách đi theo link hoặc instruction chưa được contract cho phép.
+
+Mỗi executor dùng context riêng:
+
+- orchestrator giữ user request, routing state và structured results;
+- implementation child nhận một fresh conversation với bounded coding contract;
+- reviewer child nhận một fresh conversation với original contract,
+  implementation result và workspace/diff cần review;
+- shared workspace là artifact chung, không phải shared conversation history;
+- full child transcript/reasoning không được nạp vào parent happy path.
 
 ## 8. Observability
 

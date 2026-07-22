@@ -273,41 +273,124 @@ Hermes tool surface.
 - secret-pattern scan và `git diff --check` pass;
 - người dùng quyết định `verify`.
 
-CP3 đã đóng. Hiện không có checkpoint `active`; CP4 vẫn là `candidate` cho tới
-khi người dùng yêu cầu bắt đầu. Tracking hiện dùng `state.db`, session/tool
-history, token usage, native logs và `insights` của Hermes. Chỉ cân nhắc thêm
-observer/exporter nếu một checkpoint sau chứng minh gap cụ thể.
+CP3 đã đóng. CP4 được người dùng kích hoạt ngày 2026-07-22. Tracking hiện dùng `state.db`,
+session/tool history, token usage, native logs và `insights` của Hermes. Chỉ cân
+nhắc thêm observer/exporter nếu một checkpoint sau chứng minh gap cụ thể.
+
+## Checkpoint đã đóng: CP4 — GitHub Copilot implementation handoff
+
+Status: `verified`
+
+### Câu hỏi
+
+Hermes có thể giao một coding task hữu hạn cho upstream GitHub Copilot CLI/ACP,
+giới hạn executor trong một workspace test và trả implementation evidence về
+Hermes mà không push, mở PR, deploy hoặc gọi internal MCP mutation hay không?
+
+### Observable outcome
+
+Một task contract nhỏ tạo đúng một thay đổi dự kiến trong workspace smoke test,
+trả một bounded `ImplementationResult` về Hermes và không thực hiện side effect
+ngoài scope. Evidence phải xác định được Hermes session/turn, delegated executor,
+workspace, changed files và completion status mà không ghi credential hoặc raw
+prompt/reasoning vào repository. Independent required checks và code-quality
+approval thuộc reviewer bắt buộc ở CP5.
+
+### Trong phạm vi
+
+- xác minh GitHub Copilot CLI/ACP integration có sẵn từ upstream Hermes;
+- xác minh authentication bằng key-only/status output, không đọc hoặc ghi token;
+- dùng một workspace smoke test tách biệt, không dùng production repository;
+- truyền contract tối thiểu gồm workspace, acceptance criteria, context
+  allowlist, allowed/forbidden actions, suggested self-check và expected output;
+- cho phép Copilot sửa và tự test khi ACP transport hỗ trợ, chỉ trong workspace
+  đã chọn;
+- nhận bounded implementation summary gồm completion status, changed files,
+  change summary, checks claimed/attempted và issues;
+- Hermes tổng hợp kết quả và trả một final summary về source chat;
+- ghi native session/tool/delegation evidence và repository checks.
+
+### Ngoài phạm vi
+
+- independent required-check execution và code review; việc này thuộc CP5;
+- custom agent runtime, custom ACP client hoặc copy vendor integration;
+- internal MCP mutation hoặc cấp gateway credential cho Copilot;
+- GitHub push, PR, merge, release, deploy hoặc production command;
+- routing skill tổng quát; việc này thuộc CP6;
+- Docker, database hoặc background worker mới.
+
+### Checks
+
+- [x] Copilot CLI/ACP executable và version được xác định rõ.
+- [x] Authentication status pass mà không in hoặc lưu credential.
+- [x] Workspace smoke test và baseline được ghi rõ trước delegation.
+- [x] Copilot nhận task contract cùng context allowlist hữu hạn.
+- [x] Chỉ workspace được phép thay đổi; source repository và profile không có
+      thay đổi ngoài tài liệu/checks thuộc CP4.
+- [x] Copilot tạo đúng implementation change và trả bounded
+      `ImplementationResult` về Hermes.
+- [x] Resulting smoke workspace được xác nhận hoạt động như checkpoint evidence;
+      production workflow không dùng bước này thay cho CP5 reviewer.
+- [x] Native evidence liên kết được Hermes run với delegated Copilot execution.
+- [x] Không có push, PR, merge, deploy hoặc internal MCP mutation.
+- [x] Source chat nhận một final summary hữu hạn.
+- [x] Secret-pattern scan và `git diff --check` pass.
+- [x] Người dùng quyết định `verify`, `revise`, `pause`, hoặc `replace`.
+
+### Evidence
+
+Đã verify ngày 2026-07-22:
+
+- GitHub Copilot CLI `1.0.73` đã login; direct ACP smoke xác nhận backend
+  `copilot-acp` dùng `claude-sonnet-5`;
+- profile giới hạn delegation concurrency/depth ở `1` và chỉ expose bounded
+  file/terminal tool surface cho Copilot;
+- smoke workspace là local Git repository tách biệt, không có remote và có
+  baseline hai failing tests;
+- delegated transcript liên kết được Hermes run với Copilot child, ghi đúng các
+  allowlisted reads và patch duy nhất `calculator.py`;
+- implementation đổi phép trừ thành phép cộng; final workspace check chỉ thấy
+  `calculator.py` thay đổi và exact unittest command chạy 2 tests `OK`;
+- không có network/GitHub/MCP mutation, commit, push, PR, merge hoặc deploy;
+- secret-pattern scan và `git diff --check` pass; repository chỉ đổi bốn file tài
+  liệu thuộc CP4;
+- raw child terminal event không xuất hiện ổn định trong Hermes live transcript;
+  đây là observed ACP observability gap, không phải CP4 blocker sau khi required-
+  check ownership được chuyển sang reviewer độc lập ở CP5;
+- người dùng chọn `verify` ngày 2026-07-22.
+
+### CP4 final verdict
+
+Status: `verified`
+
+CP4 chứng minh bounded Copilot ACP implementation handoff và context isolation
+đủ cho MVP. Không có checkpoint active sau quyết định này; CP5 vẫn là candidate
+cho tới khi người dùng yêu cầu bắt đầu.
 
 ## Candidate Checkpoints
 
 Thứ tự dưới đây là đề xuất. Chỉ kích hoạt checkpoint tiếp theo sau quyết định của
 người dùng.
 
-### CP4 — GitHub Copilot implementation handoff
+### CP5 — Independent code verification and review
 
-Dùng upstream Copilot CLI/ACP integration; không tự viết agent runtime hoặc copy
-vendor integration.
-
-Checks gợi ý:
-
-- một repository/workspace test được chọn rõ;
-- Copilot nhận task contract và context allowlist đã chốt;
-- Copilot chỉ sửa allowed workspace;
-- checks được thực thi và kết quả quay về Hermes;
-- không push, PR, merge, deploy hoặc internal MCP mutation;
-- source chat hiện tại nhận một final summary.
-
-### CP5 — Claude Code read-only review
-
-Thêm reviewer sau khi CP4 ổn định.
+Thêm reviewer bắt buộc sau implementation. Binding ban đầu dự kiến là
+`gpt-5.6-sol`; reviewer có thể đổi sang Claude hoặc model khác bằng config mà
+không đổi contract.
 
 Checks gợi ý:
 
-- Claude Code nhận brief, diff và test results;
-- reviewer không sửa workspace;
-- blocking findings tách khỏi suggestions;
-- Hermes tổng hợp implementation và review thành một final response;
-- Codex và Claude không chạy như hai code writers đồng thời.
+- reviewer chạy trong fresh context, không nhận full parent/Copilot history;
+- reviewer nhận original brief, acceptance criteria, `ImplementationResult` và
+  workspace/diff thực tế;
+- reviewer tự chạy required tests/lint/typecheck phù hợp, không tin
+  `checks_claimed` của implementation agent như bằng chứng cuối;
+- reviewer được đọc code/diff và chạy safe checks nhưng không sửa tracked files;
+- reviewer trả structured `ReviewResult` với `approved`, `changes_requested` hoặc
+  `blocked`, đồng thời tách blocking findings khỏi suggestions;
+- Hermes chỉ route/tổng hợp structured result; full raw transcript chỉ được đọc
+  khi failure cần diagnostic;
+- implementation executor và reviewer không chạy như hai code writers đồng thời.
 
 ### CP6 — Explicit task routing
 
@@ -315,9 +398,13 @@ Tạo một `company-assistant` skill mỏng để routing theo intent.
 
 Checks gợi ý:
 
+- coding workflow bắt buộc đi `implementation -> verification/review -> final`;
 - coding implementation route tới GitHub Copilot;
-- code review route tới Claude Code;
+- code verification/review route tới configurable reviewer binding;
+- `approved` mới được final success; `changes_requested` tạo bounded
+  re-implementation rồi review lại; `blocked` trả `needs_input` hoặc `failed`;
 - research route tới Hermes/read-only provider;
+- non-coding intent có workflow riêng và chỉ thêm reviewer khi policy yêu cầu;
 - unknown intent trả `needs_input` hoặc dùng default an toàn;
 - đổi executor bằng config/skill mà vẫn giữ native session/turn correlation;
 - bundled vendor skills không bị copy hoặc override.
