@@ -1,0 +1,71 @@
+{
+  "schema_version": "diy-l2t.task.v2",
+  "task_id": "t_example_coder_001",
+  "request_id": "req-example-001",
+  "task_type": "coding",
+  "requested_role": "coder",
+  "capability": "coding.implement",
+  "project": {
+    "slug": "sample-project",
+    "primary_repository": "/Users/example/work/sample-project"
+  },
+  "kanban": {
+    "board_slug": "sample-project",
+    "task_id": "t_example_coder_001",
+    "parent_task_ids": []
+  },
+  "workspace": {
+    "kind": "worktree",
+    "path": "/Users/example/work/sample-project/.worktrees/t_example_coder_001",
+    "base_ref": "main",
+    "branch": "assistant/t_example_coder_001"
+  },
+  "environment": {
+    "kind": "local",
+    "identifier": "mac-local",
+    "production": false
+  },
+  "objective": "Fix the bounded calculator defect and add coverage for the corrected behavior.",
+  "inputs": {
+    "brief": "Make add(left, right) return the arithmetic sum.",
+    "allowed_files": [
+      "calculator.py",
+      "tests/test_calculator.py"
+    ]
+  },
+  "acceptance_criteria": [
+    "add(left, right) returns the sum for positive and negative integers.",
+    "A focused automated test covers the corrected behavior.",
+    "The implementation is committed on the task branch."
+  ],
+  "allowed_actions": [
+    "read files inside the exact worktree",
+    "edit calculator.py and tests/test_calculator.py",
+    "run required local checks",
+    "commit the bounded changes on the task branch"
+  ],
+  "forbidden_actions": [
+    "access files outside the exact worktree",
+    "use production services or credentials",
+    "push, open a pull request, merge, or deploy"
+  ],
+  "required_checks": [
+    {
+      "id": "unit-tests",
+      "command": "python -m unittest -v",
+      "success": "All discovered tests pass."
+    },
+    {
+      "id": "diff-check",
+      "command": "git diff --check",
+      "success": "The command exits successfully with no output."
+    }
+  ],
+  "approval_class": "task_policy",
+  "expected_result_schema": "diy-l2t.result.v2",
+  "correlation": {
+    "request_id": "req-example-001",
+    "parent_session_id": "session_example_parent",
+    "parent_turn_id": "turn_example_parent"
+  }
+}

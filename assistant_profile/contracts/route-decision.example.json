@@ -1,0 +1,14 @@
+{
+  "schema_version": "diy-l2t.route-decision.v2",
+  "request_id": "req-example-001",
+  "task_type": "coding",
+  "capability": "coding.implement",
+  "route_kind": "named_profile",
+  "dispatch_mode": "kanban",
+  "target": "diy-l2t-coder",
+  "project_slug": "sample-project",
+  "board_slug": "sample-project",
+  "reason": "The request needs a durable coding role, an exact repository worktree, and independent review.",
+  "approval_class": "task_policy",
+  "approval_required": false
+}

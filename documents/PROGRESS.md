@@ -1,18 +1,80 @@
-# Nhật ký triển khai
+# Evidence và quyết định
 
-> File này chỉ ghi tiến độ và evidence thực tế. `NOW.md` vẫn là plan/checkpoint
-> có thẩm quyền duy nhất. Không dùng file này để tự kích hoạt checkpoint mới.
+> File này chỉ ghi evidence, quyết định và kết quả smoke thực tế. Checkpoint
+> active duy nhất nằm ở [NOW.md](NOW.md); product contract nằm ở
+> [MASTER_GUIDE.md](MASTER_GUIDE.md).
 
 ## Trạng thái tổng quát
 
-- Cập nhật gần nhất: 2026-07-22
-- Checkpoint: chưa có; candidate tiếp theo là CP5 — independent code verification
-  and review
-- Trạng thái checkpoint theo `NOW.md`: không có checkpoint `active`
-- Trạng thái làm việc: `checkpoint_ready`
-- Người thực hiện thay đổi chức năng: người dùng; CP4 đã đóng
-- Vai trò của Codex `gpt-5.5` trong phiên này: hướng dẫn, kiểm tra evidence và cập
-  nhật file tiến độ; không tự kích hoạt CP5
+- Cập nhật gần nhất: 2026-07-24
+- Phase 0: `verified` — documentation consolidation và v2 contract đã pass local
+  validation.
+- Checkpoint active: P1 — Always-on Telegram control plane.
+- Trạng thái P1: `ready`; chưa thay đổi LaunchAgent/runtime trong Phase 0.
+- Người thực hiện Hermes config/model/delegation/smoke commands trước đây: người
+  dùng.
+
+## Phase 0 — Consolidation và Hermes-native Kanban direction
+
+### Quyết định đã khóa
+
+- Chỉ giữ bốn product/human docs: root `README.md`, `MASTER_GUIDE.md`, `NOW.md`
+  và `PROGRESS.md`.
+- Hermes upstream sở hữu gateway, profiles, sessions, Kanban dispatcher, board
+  state và MCP execution. Repository không xây custom dispatcher/API/queue.
+- `direct_tool` dùng cho bounded tool call; `delegate_task` dùng cho short
+  fresh-context reasoning; named profiles luôn dispatch qua Kanban.
+- Mỗi codebase dùng một Hermes Project/Telegram alias, primary repository và
+  board tương ứng.
+- Coding dùng preserved Git worktree/branch dưới repository thật. Coder, QA và
+  reviewer chạy tuần tự trên exact workspace, một writer tại một thời điểm.
+- Local branch mặc định được commit nhưng không push. External writes, push, PR,
+  merge, deploy và production actions cần explicit approval.
+- QA chỉ chạy Playwright trên local/test environment; production bị cấm.
+- Mattermost reply là controlled write đầu tiên, với target + exact-content
+  preview và đúng một mutation sau approval.
+- AI news chạy on-demand, ưu tiên official/RSS sources và dùng search để bổ
+  sung; không cron hoặc subscription bắt buộc.
+- LaunchAgent sau login, không cloud fallback; raw logs giữ mặc định 30 ngày;
+  backup trước update và hằng tuần; dirty/unmerged worktree không tự xóa.
+- Kanban SQLite local không có phí riêng. Cost đến từ model/subscription/tool
+  backend được chọn.
+
+### Thay đổi contract
+
+- `assistant_profile/agents.example.yaml` nâng lên v2, default dispatch Kanban,
+  thêm `diy-l2t-qa`, coding workflow và giới hạn hai rework cycles.
+- RouteDecision, TaskEnvelope và ResultEnvelope nâng lên v2 và map trực tiếp vào
+  project/board/task/run/worktree.
+- Reviewer/non-approved result bị schema buộc `finalizable=false`.
+- Transport chỉ còn ở reply correlation của gateway; không đi vào core task
+  contract.
+
+### Evidence migration
+
+- CP1–CP5 bên dưới vẫn là historical verified evidence.
+- Manual named-profile work của CP6 chứng minh profile/coder/reviewer primitives,
+  nhưng custom/manual dispatch direction đã bị thay bởi Hermes-native Kanban.
+- Nội dung security, architecture, roadmap, MCP setup và CP5 review contract đã
+  được hợp nhất vào Master Guide hoặc retained evidence trong file này.
+- Các file tài liệu cũ được retire sau khi migration; tracked history vẫn có
+  thể xem trong Git. Hai draft chưa tracked chỉ được bảo toàn về nội dung đã
+  hợp nhất, không có historical Git blob riêng.
+
+### Validation ngày 2026-07-24
+
+| Check | Evidence | Kết quả |
+|---|---|---|
+| JSON syntax | `python3 -m json.tool` trên schema và ba examples | pass |
+| JSON Schema v2 | `Draft202012Validator.check_schema` và validate route/task/result examples | pass |
+| Reviewer gate negative test | Reviewer `changes_requested` + `finalizable=true` bị reject; `approved` được accept | pass |
+| Registry syntax | `yaml.safe_load(assistant_profile/agents.example.yaml)` | pass |
+| Human-doc count | Ba Markdown dưới `documents/` + root `README.md` | pass: đúng 4 |
+| Internal Markdown links | Resolve tất cả relative links trong bốn product docs | pass |
+| Retired-name scan | Không còn stale reference ngoài historical evidence trong file này | pass |
+| Secret pattern scan | Không phát hiện OpenAI/GitHub/Telegram token pattern trong docs/contracts | pass |
+| Git whitespace | `git diff --check` | pass |
+| GitNexus post-change analysis | 110 nodes, 109 edges; `detect-changes --scope all --repo diy-l2t-backend` | pass: low risk, 0 affected flows |
 
 ## Mục tiêu đã hiểu
 
@@ -42,11 +104,15 @@ Observability MVP dùng trực tiếp `state.db`, session/tool history, token us
 native logs và `insights` của Hermes. Không tạo project event stream song song;
 chỉ cân nhắc observer/exporter nếu checkpoint sau chứng minh gap cụ thể.
 
-Coding workflow được người dùng chốt theo ba role tách context: Copilot ACP làm
-implementation, reviewer được bind bằng config tự verify/review bắt buộc, và
-Hermes/Codex `gpt-5.5` chỉ điều hướng/tổng hợp structured results. CP4 chứng minh
-implementation handoff; CP5 chứng minh independent verification/review; CP6 mã
-hóa workflow theo intent trong custom routing skill.
+Coding workflow được người dùng chốt theo ba role tách context: GitHub Copilot
+làm implementation (ACP path đã pass CP4 nhưng fail CP6 multi-turn compatibility;
+direct provider là recovery candidate), reviewer profile tự verify/review bắt
+buộc, và Hermes/Codex
+`gpt-5.5` điều hướng/tổng hợp structured results. Mục tiêu tương lai mở rộng sang
+GitHub, calendar, browser QC, test và translation: thao tác đơn giản dùng direct
+tool; role cần model/policy/context riêng dùng named profile; `delegate_task` giữ
+cho short-lived workers dùng global binding. CP4 chứng minh implementation
+handoff; CP5 chứng minh reviewer profile; CP6 mới chứng minh named-agent routing.
 
 ## Evidence ban đầu
 
@@ -275,7 +341,142 @@ chọn `verify`; CP3 đã đóng. Hiện chưa có checkpoint `active`.
 CP4 đã `verified` ngày 2026-07-22: final workspace chỉ đổi `calculator.py`, exact
 unittest command chạy 2 tests `OK`, không có remote, secret-pattern scan clear,
 repository `git diff --check` pass và người dùng chấp nhận evidence. CP5 chưa
-được kích hoạt.
+được kích hoạt tại thời điểm đóng CP4.
+
+## Các bước CP5
+
+| Bước | Mục tiêu | Trạng thái | Evidence / next action |
+|---|---|---|---|
+| CP5.1 | Kích hoạt checkpoint và chốt review contract | done | `NOW.md` có question, outcome, scope, `ReviewResult` và acceptance checks |
+| CP5.2 | Backup profile config và xác minh quyền dùng `gpt-5.6-sol` bằng direct smoke | done | Backup checksum match; marker/usage report xác nhận exact model/provider và completed session |
+| CP5.3 | Tạo `diy-l2t-reviewer` profile độc lập | done | Path riêng, alias riêng, gateway stopped, 0 skills và chưa có model |
+| CP5.4 | Xác minh reviewer config/tool baseline và chụp workspace baseline | done | Profile smoke, main invariant, Git/diff baseline và 2 tests đều pass |
+| CP5.5 | Gọi trực tiếp reviewer profile trong fresh session | done | Session `20260722_154207_532bd1` trả `approved` đúng `cp5.review.v1`; không delegate |
+| CP5.6 | Independent checks, before/after diff và reviewer evidence | done | User checks, byte-identical diff, tests và native model/session log đều pass |
+| CP5.7 | Xác minh main profile invariant | done | Model/delegation đúng CP4 baseline; current config và backup có cùng SHA-256 |
+| CP5.8 | Repository closure checks và quyết định checkpoint | done | Checks pass; người dùng chấp nhận bằng quyết định tiếp tục CP6 |
+
+## Evidence CP5 final
+
+| Hạng mục | Kết quả | Trạng thái |
+|---|---|---|
+| Repository baseline | `master...origin/master` tại `bc98475`, worktree sạch trước CP5 document update | pass baseline |
+| CP4 artifact | `/private/tmp/diy-l2t-cp4-smoke` còn tồn tại; chỉ `calculator.py` có tracked diff và repository không có remote | reviewed and approved |
+| Profile backup | `config.yaml.cp5-before-reviewer.bak` có cùng SHA-256 `a37980f0bc916114fe10a6fecbc94462bc63a8b2b2a1f1d68853feef69a5f5d1` với config hiện tại | pass restore point |
+| Parent binding | Profile hiện dùng `openai-codex` / `gpt-5.5` | pass final CP5 recheck |
+| Implementation binding | Delegation hiện dùng `copilot-acp`; concurrency/depth `1`, orchestrator disabled, auto-approve disabled | pass CP4 baseline; không thay đổi trong CP5 |
+| Delegation inheritance baseline | `inherit_mcp_toolsets=true`, `max_summary_chars=24000`, reasoning override rỗng | observed CP4 path; không dùng cho direct reviewer profile |
+| Reviewer target | Direct smoke trả `CP5_REVIEWER_MODEL_OK` bằng `openai-codex` / `gpt-5.6-sol`; session `20260722_133858_676590`, completed, không fallback | pass entitlement/runtime |
+| Reviewer-model smoke usage | 1 API call; 2,783 input + 11 output = 2,794 tokens; cost status `included` | observed bounded smoke |
+| Reviewer profile | `/Users/teq-tantai/.hermes/profiles/diy-l2t-reviewer`; gateway stopped; alias `/Users/teq-tantai/.local/bin/diy-l2t-reviewer`; 0 skills | pass CP5.3 clean-profile boundary |
+| Reviewer auth/model | Profile có Hermes-owned OpenAI Codex auth session; resolved model là `openai-codex` / `gpt-5.6-sol`, base URL Codex chính thức | pass config evidence; không lưu auth/device code |
+| Reviewer-profile smoke | Marker `CP5_REVIEWER_PROFILE_OK`; session `20260722_150636_f20c22`; 1 API call; 11,992 input + 11 output = 12,003 tokens; completed, không fallback | pass exact profile/provider/model runtime evidence |
+| Main-profile invariant recheck | `diy-l2t` vẫn `openai-codex/gpt-5.5`; delegation vẫn `copilot-acp` với bounded CP4 settings | pass trước reviewer run |
+| CP4 review baseline | Git root `/private/tmp/diy-l2t-cp4-smoke`; HEAD `ff861ef115c129e2051a32b7f3ffb0e722a693e5`; no remote; chỉ `calculator.py` đổi 1+/1- | pass bounded workspace |
+| Pre-review binary diff | `/private/tmp/cp5-review-before.diff`; SHA-256 `e83e857ac48081b97f399f739d1cce969979eeebe7011a5f581c49c7310d1d58` | pass immutable comparison baseline |
+| Pre-review checks | `git diff --check` không output; `python -m unittest -v` chạy 2 tests `OK`; post-test status vẫn chỉ ` M calculator.py` | pass independent baseline |
+| Review task contract | `documents/CP5_REVIEW_TASK.md`, task `CP5-REVIEW-001`, version `cp5.review.v1` | used by completed CP5.5 run |
+| CP5.5 preflight invocation | Top-level `-z` bị trộn với chat-only `--max-turns`; argparse dừng trước agent start và usage file không tồn tại | CLI syntax failure only; 0 reviewer/API runs, CP5.5 vẫn chưa dispatch |
+| Reviewer run | Session `20260722_154207_532bd1`; 1 phút; 18 messages; 16 tool calls; final `status=approved` | pass structured self-report; independently corroborated trong CP5.6 |
+| Reviewer checks claim | Đúng root/HEAD/no-remote/status; diff check sạch; 2 tests pass; post hash khớp `e83e857a...d1d58` | pass; independently corroborated trong CP5.6 |
+| Reviewer actual tools | `read_file`, `terminal`, `multi_tool_use.parallel`; `forbidden_actions_observed=[]` | pass task-specific action policy theo visible transcript |
+| Reviewer chat usage file | Không được tạo vì upstream ghi rõ `--usage-file` chỉ có hiệu lực với top-level `-z/--oneshot`, không áp dụng `chat -q` | expected CLI limitation; dùng native session/log evidence, không rerun |
+| Raw transcript policy | Attachment có tool trace và displayed reasoning; repository chỉ ghi bounded result/tool metadata, không copy raw reasoning/transcript | pass documentation boundary |
+| Post-review workspace | PWD/root đúng; HEAD vẫn `ff861ef115c129e2051a32b7f3ffb0e722a693e5`; no remote; status chỉ ` M calculator.py`; diff check sạch | pass independent invariant |
+| Post-review tests | `python -m unittest -v` chạy lại 2 tests `OK`; status không phát sinh tracked change | pass independent functional check |
+| Before/after diff identity | Cả hai SHA-256 là `e83e857ac48081b97f399f739d1cce969979eeebe7011a5f581c49c7310d1d58`; `cmp` không output | pass byte-identical invariant |
+| Native reviewer lineage | Profile session list liên kết task/workspace với `20260722_154207_532bd1`; agent log ghi `history=0`, model `gpt-5.6-sol`, provider `openai-codex` | pass fresh-context/model evidence |
+| Reviewer runtime usage | Agent log ghi 5 API calls trong budget `5/20`, 4 tool turns, final stop và response length 2,564 | pass bounded runtime evidence; không có one-shot usage report |
+| Tirith | Reviewer log báo binary `tirith` không tồn tại; circuit breaker disable checker cho phần còn lại của process | warning; không chặn isolated smoke do no-remote + byte-identical diff, phải đánh giá khi hardening |
+| Final main model/binding | `diy-l2t` vẫn `openai-codex/gpt-5.5`; delegation vẫn `copilot-acp` với max iterations 8, concurrency/depth 1, orchestrator/auto-approve disabled | pass CP5.7 invariant |
+| Main config identity | Current config và `config.yaml.cp5-before-reviewer.bak` cùng SHA-256 `a37980f0bc916114fe10a6fecbc94462bc63a8b2b2a1f1d68853feef69a5f5d1` | pass byte-identical baseline |
+| Reviewer contract | `cp5.review.v1` tách status, checks, blocking findings, suggestions và tracked-file invariant | documented |
+| Reviewer tool defaults | Profile sạch enable 17/25 CLI toolsets, gồm web/browser/file/code execution/memory/delegation/cron/Kanban/computer-use | accepted discovery baseline; không bật thêm tool đang disabled |
+| Tool policy | Người dùng chọn quan sát actual tool usage trước khi least-privilege hardening; contract vẫn cấm web/MCP/Git remote/internal mutation trong CP5 review | accepted for isolated smoke; before/after diff bắt buộc |
+| Reviewer role | Reviewer được thiết kế là multi-tool agent, không phải terminal-only; tool availability và per-task authorization là hai lớp riêng | accepted architecture decision |
+| Ownership boundary | Người dùng tự thao tác Hermes; Codex chỉ sửa documents/hướng dẫn/evidence | accepted |
+| CP5 repository closure | Worktree chỉ có sáu document sửa đổi và một review-contract document mới; không có source/profile config change; diff, trailing-whitespace, secret/device-code và active-plan checks đều sạch | pass; accepted by user |
+
+CP5.2 đã pass: restore point hợp lệ và direct marker smoke xác nhận account chạy
+được exact `gpt-5.6-sol` qua `openai-codex`. Temporary rebinding đã bị thay thế
+trước khi thực hiện. CP5.3 đã tạo thành công profile sạch
+`diy-l2t-reviewer`. Reviewer model và main-profile invariant đã pass. Tool audit
+ghi default profile enable 17/25 toolsets; người dùng chọn giữ baseline này để
+quan sát actual usage và harden sau. Bounded reviewer-profile model smoke đã
+pass. CP4 workspace/binary-diff baseline và 2 required tests cũng pass. CP5.5
+reviewer session trả structured `approved`, nhưng `--usage-file` không áp dụng
+cho `chat -q`. Không rerun. CP5.6 independent checks xác nhận byte-identical diff,
+2 tests `OK` và exact native session/model lineage. CP5.7 cũng xác nhận main
+profile config byte-identical với pre-review baseline. CP5.8 repository closure
+checks cũng đã pass. Người dùng chấp nhận CP5 bằng quyết định tiếp tục CP6.
+
+## Historical CP6 manual-routing evidence — `replaced`
+
+Phần này là evidence tại thời điểm CP6 còn active, không phải plan hiện tại.
+Phase 0 giữ lại những gì đã chứng minh về profiles/models/contracts và thay
+manual/custom dispatch direction bằng Hermes-native Kanban.
+
+| Bước | Mục tiêu | Trạng thái | Evidence / next action |
+|---|---|---|---|
+| CP6.1 | Verify CP5, activate CP6 và chốt vertical-slice plan | done | Official profiles/providers/delegation docs đã được đối chiếu; `NOW.md` là active plan tại thời điểm đó |
+| CP6.2 | Tạo và inspect profile sạch `diy-l2t-coder` | done | Profile path/alias riêng, gateway stopped, 0 skills, `.env`/`SOUL.md` tồn tại; model chưa set |
+| CP6.3 | Cấu hình Copilot ACP coder backend | done | Provider `copilot-acp`, backend `acp://copilot`, default model hint `claude-sonnet-5`; existing roles không đổi |
+| CP6.4 | Tool/fresh-context/invariant baseline | done | 17/25 baseline, exact marker, usage report và post-smoke role/repository invariants pass |
+| CP6.5 | Capability registry và versioned envelopes | done | Registry YAML, shared JSON Schema, three linked examples và reference doc validated |
+| CP6.6 | Manual `coder -> reviewer` smoke | replaced | Direct coder implementation/checks pass; incomplete manual pipeline không tiếp tục |
+| CP6.7 | Route-kind smoke | replaced | Được thay bằng v2 registry/Kanban vertical slice ở Phase 2 |
+| CP6.8 | Automatic adapter | cancelled | Không xây adapter; dùng Hermes Kanban dispatcher |
+| CP6.9 | Closure | replaced | Phase 0 ghi quyết định thay hướng |
+
+## Historical evidence CP6
+
+| Hạng mục | Kết quả | Trạng thái |
+|---|---|---|
+| Official profile model | Profile có config, keys, memory, sessions, skills và state riêng; alias gọi đúng profile; profile không sandbox filesystem | confirmed from upstream [profiles docs](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) |
+| Official Copilot ACP backend | Upstream hỗ trợ top-level Copilot ACP external-process provider và cần local Copilot CLI/login | confirmed from upstream [providers docs](https://hermes-agent.nousresearch.com/docs/integrations/providers) |
+| Config/runtime model boundary | Installed wizard lưu selected model làm ACP session hint; CP6.4 usage đã xác nhận effective `copilot-acp`/`claude-sonnet-5` | pass marker runtime proof; không suy ra multi-turn compatibility |
+| Official delegation boundary | Child có fresh conversation, nhận context qua `goal/context`, dùng configured delegation provider/model và không nhận per-call named profile | confirmed from upstream [delegation docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation) |
+| Programmatic surfaces | Upstream có ACP, TUI gateway JSON-RPC và OpenAI-compatible API; CP6 chưa chọn adapter trước manual profile smoke | confirmed from [programmatic integration docs](https://hermes-agent.nousresearch.com/docs/developer-guide/programmatic-integration); decision pending CP6.8 |
+| Kanban | Không dùng trong CP6 baseline | accepted user decision |
+| Profile mutation ownership | Người dùng tự chạy Hermes commands; Codex chỉ quản lý documents/contracts/evidence | accepted |
+| Coder profile creation | `/Users/teq-tantai/.hermes/profiles/diy-l2t-coder`; alias `/Users/teq-tantai/.local/bin/diy-l2t-coder`; gateway stopped; 0 skills; `.env` và `SOUL.md` tồn tại | pass CP6.2 clean-profile boundary |
+| Coder pre-model state | Profile list hiển thị model `—`; chưa chạy broad `setup` hoặc cấu hình provider | pass mutation isolation; ready for CP6.3 |
+| Existing profile invariants after coder create | Main vẫn `openai-codex/gpt-5.5`; delegation vẫn bounded `copilot-acp`; reviewer vẫn `openai-codex/gpt-5.6-sol` | pass; profile creation không làm đổi role khác |
+| Coder model config | `provider=copilot-acp`, `base_url=acp://copilot`, `default=claude-sonnet-5`, `api_mode=chat_completions`; profile show resolve `claude-sonnet-5 (copilot-acp)` | pass CP6.3 configured target |
+| ACP process behavior | Wizard/source xác nhận Hermes tạo Copilot ACP subprocess riêng cho từng request và dùng selected model làm session hint | marker runtime pass; CP6.6 multi-turn tool-loop compatibility fail |
+| Existing profile invariants after coder model setup | Main vẫn `openai-codex/gpt-5.5`; delegation vẫn bounded `copilot-acp`; reviewer vẫn `openai-codex/gpt-5.6-sol` | pass; coder model mutation isolated |
+| Coder CLI tool baseline | Default profile enable 17/25 CLI toolsets, cùng nhóm web/browser/terminal/file/code execution/memory/delegation/cron/Kanban/computer-use như reviewer | observed discovery baseline; chưa enable/disable tool |
+| Skills/tool distinction | Profile có 0 installed skills nhưng `skills` toolset vẫn enabled | expected: capability gọi skill tồn tại, catalog profile hiện rỗng |
+| Coder tool policy | Giữ default tools cho marker discovery; task contract và actual ACP trace mới quyết định action hợp lệ | accepted for CP6.4 smoke; hardening deferred |
+| Coder profile smoke usage | Session `20260722_161348_9b033d`; 1 API call; provider `copilot-acp`; model `claude-sonnet-5`; completed true, failed false | pass effective backend/model runtime evidence |
+| ACP token/cost visibility | Usage report ghi mọi token field bằng 0, estimated cost 0 và cost status `unknown` | observed external-process accounting gap; không phải runtime failure |
+| Marker response evidence | Người dùng xác nhận exact `CP6_CODER_PROFILE_OK` | pass exact response |
+| Post-smoke role invariants | Coder vẫn `copilot-acp/claude-sonnet-5`; main `openai-codex/gpt-5.5`; delegation bounded `copilot-acp`; reviewer `openai-codex/gpt-5.6-sol` | pass CP6.4 final recheck |
+| Post-smoke repository | Git status chỉ có expected document/contract changes; `git diff --check` không output | pass no-smoke-mutation evidence |
+| Capability registry | `assistant_profile/agents.example.yaml` biểu diễn direct tool, anonymous delegate, named coder/reviewer và `needs_input`; không phải Hermes config | created CP6.5 |
+| Agent contract schema | `assistant_profile/contracts/agent-contracts.schema.json` định nghĩa `RouteDecision`, `TaskEnvelope`, `ResultEnvelope` bằng versioned JSON Schema | created CP6.5 |
+| Contract examples | Ba JSON examples dùng cùng request/task lineage; coder result có review pending và `finalizable=false` | pass structural assertions |
+| Contract validation | Tất cả JSON parse; YAML safe-load pass; schema defs/versions/lineage/review gate assertions pass; `jsonschema` không có sẵn nên không thêm dependency | pass bounded no-network validation |
+| CP6 workspace preflight | `/private/tmp/diy-l2t-cp6-smoke` available; source root `/private/tmp/diy-l2t-cp4-smoke`, HEAD `ff861ef115c129e2051a32b7f3ffb0e722a693e5`, status chỉ ` M calculator.py`, remote list rỗng | pass; safe to create detached worktree from committed baseline |
+| CP6 worktree | `/private/tmp/diy-l2t-cp6-smoke` registered as detached worktree at `ff861ef115c129e2051a32b7f3ffb0e722a693e5`; source remains on `main` | pass isolated workspace creation |
+| CP6 worktree baseline | Root/PWD/HEAD exact; status, remote list và diff check sạch; two unittest cases fail because committed `add()` subtracts | pass expected failing baseline |
+| Actual route decision | `/private/tmp/cp6-route-decision.json`: request `cp6-manual-workflow-001`, `named_profile -> coder`; SHA-256 `cc37198674c69fc163637125b5f07db913b804c8549ecacb07ef3a6d44a7fc09` | parse/lineage pass; runtime document not committed |
+| Actual coder task | `/private/tmp/cp6-task-envelope.json`: task `cp6-code-001`, exact workspace/base/criteria/action policy/checks; SHA-256 `2f7e77ba2f63615de09671cf536837603e6cc559f0785e8c22cb0cecff9936d0` | parse/lineage pass; runtime document not committed |
+| First CP6 coder invocation | Session `20260722_164959_5a9334`; usage ghi 7 API calls, `completed=true`, `failed=false`, nhưng stdout chỉ là progress text | workflow fail; transport completion không thỏa TaskEnvelope |
+| First CP6 coder tool trace | 10 calls: 9 `read_file`, 1 read-only `terminal`; contract/source được đọc, source bị đọc lặp; không có `patch`/`write_file` | no implementation; no forbidden action observed |
+| First CP6 coder post-check | tracked status/diff vẫn sạch; `git diff --check` pass; 2 unit tests vẫn fail đúng baseline | reject result; reviewer not invoked |
+| Installed ACP shim compatibility | Mỗi provider request tạo ACP subprocess mới; transcript formatter không serialize assistant `tool_calls` khi content rỗng, nên next request mất action/result association | confirmed installed-source limitation; do not blind retry same path |
+| CP6 coder backend recovery | `diy-l2t-coder` resolve `copilot`/`claude-sonnet-5`, base URL `https://api.githubcopilot.com`, `api_mode=chat_completions`; gateway stopped, profile/alias unchanged | config + fresh runtime marker pass |
+| Post-recovery role invariants | Main vẫn `openai-codex/gpt-5.5`; global delegation vẫn bounded `copilot-acp`; reviewer vẫn `openai-codex/gpt-5.6-sol` | pass; chỉ named coder backend thay đổi |
+| Direct coder marker smoke | Người dùng xác nhận exact `CP6_CODER_DIRECT_OK`, usage effective `copilot`/`claude-sonnet-5`, completed/not-failed và post-smoke workspace/diff checks sạch | pass; ready to retry `cp6-code-001` |
+| Direct coder implementation | Session `20260722_171216_a29fd4`; 7 API calls; tools `read_file`, `patch`, `terminal`; only `calculator.py` changed; diff check + 2 tests pass | implementation/checks pass |
+| Direct coder usage | 12,071 input, 2,944 output, 185,908 cache-read, 200,923 total tokens; provider/model correct; completed true, failed false | pass runtime/accounting evidence; cost unknown |
+| Direct coder stdout | Raw artifact SHA `c0fab50a3ab47b418a8b10b9ae3ff48b08f3c0f0558a81b70e3fdbc25b4cab0b` chứa verification-policy text, không phải JSON | output-contract gap; không dùng làm reviewer handoff |
+| Verify-on-stop interaction | Tiny fixture không expose auto-detected canonical verify command; guard yêu cầu ad-hoc temp script, coder từ chối vì ngoài TaskEnvelope; substantive JSON candidate vẫn persisted ở message `42` | policy conflict confirmed from installed runtime + durable session |
+| Canonical coder result | `/private/tmp/cp6-coder-direct-result.json` được materialize từ message `42`, chỉ correlate actual usage session ID; provenance comparison/structural assertions pass; SHA `1aff6b2efe824475202c25eb1830c5f824f05153f1f7eb643f39447ad195823c` | ready for reviewer handoff |
+| Coder diff artifact | Current tracked binary diff SHA `e83e857ac48081b97f399f739d1cce969979eeebe7011a5f581c49c7310d1d58`; status chỉ ` M calculator.py` | immutable reference for reviewer pre/post comparison |
+| CP6 review route | `/private/tmp/cp6-review-route-decision.json`: same request lineage, `named_profile -> reviewer`; SHA `2989603ac9ef3c74b7d2b4958754247998807c2a0e84ccf88043421d0060ce54` | parse/route assertions pass |
+| CP6 review task | `/private/tmp/cp6-review-task-envelope.json`: exact coder session/result/usage/diff hashes, read-only actions, independent checks and result gate; SHA `f841bd88df70b18d27233d1094cb3d23a673961e91d36d2faa625dac947f8e99` | parse/lineage assertions pass; ready to dispatch reviewer |
 
 ## Decision log
 
@@ -311,22 +512,136 @@ repository `git diff --check` pass và người dùng chấp nhận evidence. CP
 | 2026-07-22 | Cố định coding flow có mandatory reviewer | GitHub Copilot ACP implementation → independent verification/review → Hermes `gpt-5.5` route/tổng hợp final |
 | 2026-07-22 | Chuyển required-check ownership sang CP5 reviewer | CP4 chỉ chứng minh implementation handoff; reviewer phải tự chạy checks và không tin implementation self-report như final evidence |
 | 2026-07-22 | Giữ reviewer replaceable | Binding ban đầu dự kiến `gpt-5.6-sol`; có thể đổi sang Claude/model khác bằng config mà không đổi workflow contract |
-| 2026-07-22 | Dành custom workflow routing cho CP6 | `company-assistant` skill sẽ route theo intent; coding bắt buộc review, non-coding có workflow/review policy riêng |
+| 2026-07-22 | Dành workflow routing cho CP6 | Fixed routes và contracts phải được verify trước; skill/CLI/API/MCP dispatch mechanism sẽ được chọn trong CP6 |
 | 2026-07-22 | Verify CP4 | Copilot ACP implementation handoff, isolated workspace, bounded tool/context scope, expected patch, manual functional check, forbidden-action checks và repository closure checks đều pass; người dùng chấp nhận evidence |
+| 2026-07-22 | Kích hoạt CP5; người dùng giữ quyền thao tác Hermes | Tách rõ ownership: Codex cập nhật documents/hướng dẫn, người dùng tự create/configure/run reviewer profile để học runtime workflow |
+| 2026-07-22 | CP5 dùng temporary reviewer binding rồi restore Copilot | Superseded trước khi config thay đổi: người dùng nhận thấy global rebinding không phù hợp với role isolation |
+| 2026-07-22 | Dùng `diy-l2t-reviewer` profile trực tiếp cho CP5 | Giữ nguyên Copilot delegation; reviewer có provider/model/session/config riêng và không cần `delegate_task` |
+| 2026-07-22 | Chọn capability-based routing làm hướng dài hạn | Orchestrator gọi simple tools trực tiếp, dùng anonymous delegate cho subtask ngắn và named profiles cho coder/reviewer/QA/test/translation khi role cần isolation |
+| 2026-07-22 | Không dùng Kanban trong CP5 | Manual structured handoff qua contract + Git artifact dễ kiểm chứng; CP6 mới đánh giá CLI runner, Hermes API hoặc MCP adapter cho automatic named dispatch |
+| 2026-07-22 | Giữ reviewer default toolsets trong CP5 discovery | Quan sát actual tool calls trước khi quyết định disable; không bật thêm tool đang disabled, contract và isolated diff invariant kiểm soát smoke |
+| 2026-07-22 | Reviewer là multi-tool agent | Reviewer có thể dùng nhiều tools theo review use case; contract/credentials/workspace/evidence giới hạn action, không hardcode terminal-only |
+| 2026-07-22 | Verify CP5 và kích hoạt CP6 | Reviewer run, independent checks, profile/model/main-binding invariants và repository closure đều pass; người dùng yêu cầu tiếp tục CP6 |
+| 2026-07-22 | CP6 bắt đầu bằng named coder profile | Official profiles/providers docs xác nhận profile độc lập và `copilot-acp` dùng được làm top-level backend; phải verify profile trước routing automation |
+| 2026-07-22 | Tách ACP config hint khỏi effective runtime proof | Actual wizard lưu `claude-sonnet-5` trong Hermes config và truyền làm ACP session hint; marker smoke vẫn phải xác nhận request thực tế |
+| 2026-07-22 | Manual handoff trước automatic adapter | Giảm biến số: verify coder/reviewer/contracts trước, sau đó mới chọn CLI runner, Hermes API hoặc MCP; không dùng Kanban |
 
 ## Câu hỏi chưa chặn bước hiện tại
 
-- CP5 phải xác minh cách bind `gpt-5.6-sol` thành reviewer child fresh-context;
-  Claude/model khác vẫn là replacement candidate, không hardcode vào workflow.
-- CP5 phải chọn bounded check output để reviewer không nhận toàn repository hoặc
-  test log không cần thiết.
+- CP6 phải tạo/verify `diy-l2t-coder` trước khi thay CP4 delegated coding path.
+- CP6 phải chọn manual-only, CLI runner, Hermes API hay MCP adapter cho named
+  profile dispatch; Kanban không bắt buộc.
 - CP6 phải quyết định skill-only enforcement đã đủ hay cần hook/plugin để chặn
   coding final khi chưa có `ReviewResult.status=approved`.
+- Hardening phải quyết định reviewer tool allowlist dựa trên actual CP5 usage;
+  profile không được xem là read-only sandbox chỉ vì role instruction.
 - Telegram/Mattermost tokens nằm trong profile local `.env`; cần quyết định cơ
   chế backup/rotation ở checkpoint hardening, không đưa secret vào Git.
 
 ## Lịch sử cập nhật
 
+- 2026-07-22: người dùng kích hoạt CP5 và yêu cầu tự thực hiện mọi Hermes command;
+  tài liệu chốt review contract, temporary binding/restore strategy và chuyển
+  CP5.2 thành next action duy nhất.
+- 2026-07-22: CP5.2 backup/config baseline pass; backup và config hiện tại có
+  cùng SHA-256, parent vẫn là `openai-codex/gpt-5.5`, delegation vẫn là bounded
+  `copilot-acp`. Direct reviewer-model smoke là next action.
+- 2026-07-22: CP5.2 direct smoke pass; exact `gpt-5.6-sol` marker, provider,
+  completed session và bounded usage được xác nhận. CP5.3 chuyển `in_progress`;
+  chưa thay delegation config tại thời điểm ghi evidence này.
+- 2026-07-22: sau khi đối chiếu upstream delegation/profile docs, temporary
+  reviewer rebinding bị replace trước khi thực hiện. CP5 sẽ tạo
+  `diy-l2t-reviewer` trực tiếp; main Copilot binding giữ nguyên. Hướng dài hạn là
+  capability-based named profiles, direct tools và optional dispatch adapter.
+- 2026-07-22: CP5.3 pass; `diy-l2t-reviewer` có profile path/alias riêng, gateway
+  stopped, 0 skills và chưa có model. CP5.4 chuyển `in_progress` để cấu hình main
+  model trước; chưa chạy review.
+- 2026-07-22: reviewer OAuth/config pass bằng Hermes-owned session; resolved
+  model là `openai-codex/gpt-5.6-sol`. Recheck xác nhận `diy-l2t` vẫn dùng
+  `gpt-5.5` và delegation vẫn là `copilot-acp`. Không ghi device code/auth data.
+- 2026-07-22: reviewer tool audit thấy blank/no-skills profile vẫn enable 17/25
+  CLI toolsets. Người dùng chọn giữ default set để quan sát actual usage; không
+  bật thêm tool disabled và chuyển least-privilege decision sang hardening.
+- 2026-07-22: bounded reviewer-profile smoke pass không cần model/provider
+  override; exact `gpt-5.6-sol`/`openai-codex`, session
+  `20260722_150636_f20c22`, one API call và completed status được xác nhận.
+- 2026-07-22: CP5.4 pass; review workspace không có remote, chỉ `calculator.py`
+  đổi, pre-review binary diff SHA-256 là `e83e857a...d1d58`, diff check sạch và 2
+  tests `OK`. `CP5_REVIEW_TASK.md` được chốt cho đúng một CP5.5 run.
+- 2026-07-22: CP5.5 command preflight thất bại ở argparse vì `--max-turns` là
+  option của `chat`, không phải top-level one-shot. Không có model/API call hoặc
+  usage file nên chưa tính là reviewer run; corrected syntax dùng global
+  `--usage-file` trước `chat`, rồi `--max-turns` và `-q` sau subcommand.
+- 2026-07-22: corrected `chat -q` reviewer run hoàn thành trong session
+  `20260722_154207_532bd1`, trả `approved`, 16 visible tool calls và không
+  forbidden action. `--usage-file` vẫn không tạo file vì source xác nhận option
+  này one-shot-only; không rerun, chuyển CP5.6 sang session/log + independent
+  workspace evidence.
+- 2026-07-22: CP5.6 pass; user rerun 2 tests `OK`, tracked status không đổi,
+  before/after binary diff byte-identical và native log xác nhận fresh session,
+  exact provider/model, 5/20 API budget. Ghi warning `tirith` unavailable để xử
+  lý trong hardening; CP5.7 chuyển `in_progress`.
+- 2026-07-22: CP5.7 pass; main `diy-l2t` vẫn `gpt-5.5`, delegation vẫn
+  `copilot-acp`, và current config có cùng SHA-256 `a37980f...f5d1` với backup
+  trước reviewer. CP5.8 chuyển `in_progress`; checkpoint chờ closure + user
+  decision.
+- 2026-07-22: CP5.8 documents-only closure checks pass: worktree không có
+  source/profile config change; `git diff --check`, trailing-whitespace,
+  secret/device-code và active-plan checks đều sạch. CP5 vẫn `active` cho tới
+  khi người dùng chọn `verify`, `revise`, `pause` hoặc `replace`.
+- 2026-07-22: người dùng yêu cầu tiếp tục CP6, được ghi nhận là quyết định
+  `verify` CP5. CP5.8/final verdict chuyển `verified`; CP6 chuyển `active`.
+- 2026-07-22: CP6.1 đối chiếu official Hermes profiles, providers, delegation và
+  programmatic integration docs. Chốt profile coder sạch + manual workflow trước
+  khi chọn automatic adapter; CP6.2 chuyển `in_progress`.
+- 2026-07-22: CP6.2 pass; `diy-l2t-coder` có path/alias riêng, gateway stopped,
+  0 skills, model chưa set và không clone state/credentials. Recheck xác nhận
+  main/delegation/reviewer đều không đổi; CP6.3 chuyển `in_progress`.
+- 2026-07-22: CP6.3 pass; model wizard tìm thấy Copilot CLI và 11 models, lưu
+  `copilot-acp` + `acp://copilot` + `claude-sonnet-5` session hint. Main,
+  delegation và reviewer configs vẫn không đổi; CP6.4 chuyển `in_progress`.
+- 2026-07-22: CP6.4 tool audit ghi default coder profile enable 17/25 CLI
+  toolsets dù installed skills bằng 0. Chưa thay tool config; marker smoke là
+  next action để kiểm chứng effective ACP backend/model mà không mutation.
+- 2026-07-22: CP6.4 one-shot usage report xác nhận session mới, 1 ACP API call,
+  exact `copilot-acp`/`claude-sonnet-5`, completed và không failed. ACP không trả
+  token/cost accounting; exact marker line và post-smoke invariants còn pending.
+- 2026-07-22: người dùng xác nhận exact `CP6_CODER_PROFILE_OK`; post-smoke
+  coder/main/delegation/reviewer configs không đổi và repository diff check sạch.
+  CP6.4 pass.
+- 2026-07-22: CP6.5 tạo project-owned registry YAML, shared JSON Schema, ba
+  linked examples và routing-contract reference. JSON/YAML syntax cùng
+  version/lineage/review-gate assertions pass; CP6.6 chuyển `in_progress`.
+- 2026-07-22: CP6.6 preflight pass; target workspace chưa tồn tại, CP4 source
+  đúng root/HEAD, chỉ có expected uncommitted calculator fix và không có remote.
+  Next action là detached worktree từ committed baseline; chưa gọi coder.
+- 2026-07-22: detached CP6 worktree tạo thành công tại exact commit, clean/no
+  remote/diff-check pass và hai tests fail đúng baseline. Actual RouteDecision +
+  TaskEnvelope được materialize trong `/private/tmp`; chưa gọi coder.
+- 2026-07-22: first CP6.6 coder run không đạt contract. Usage report chỉ xác
+  nhận process kết thúc; session trace có 9 reads + 1 read-only terminal, không
+  edit, không ResultEnvelope và tests vẫn fail. Installed ACP shim mất assistant
+  tool-call history giữa các short-lived requests, làm model đọc lặp. Reviewer
+  không được gọi; next action là snapshot config và thử direct Copilot backend
+  cho riêng coder profile, không đổi global delegation binding.
+- 2026-07-22: người dùng chuyển riêng `diy-l2t-coder` sang direct GitHub Copilot.
+  Config resolve `copilot`/`claude-sonnet-5`, base URL
+  `https://api.githubcopilot.com`, gateway stopped; main, global delegation và
+  reviewer invariants đều pass. Chưa retry task; next action là fresh marker
+  smoke để tách provider validation khỏi code mutation.
+- 2026-07-22: người dùng xác nhận direct-provider marker smoke pass với exact
+  `CP6_CODER_DIRECT_OK`, expected provider/model/usage flags và clean workspace.
+  CP6.6 next action chuyển sang retry exact `cp6-code-001`; reviewer vẫn chưa
+  được gọi.
+- 2026-07-22: direct coder retry sửa đúng `calculator.py`, required checks pass
+  và durable message `42` chứa schema-valid ResultEnvelope. Verify-on-stop sau
+  đó yêu cầu ad-hoc tempfile vì tiny fixture không có auto-detected canonical
+  command; coder từ chối đúng contract nên final stdout không còn JSON. Codex
+  materialize canonical result từ candidate, correlate actual usage session ID
+  và verify exact provenance; CP6.6 chuyển sang independent reviewer.
+- 2026-07-22: CP6 review RouteDecision/TaskEnvelope được materialize với exact
+  coder result/usage/raw-output/diff hashes và same request lineage. Structural
+  checks pass; next action là fresh `diy-l2t-reviewer` run trong exact workspace.
 - 2026-07-21: tạo tracker; hoàn thành đọc tài liệu và environment discovery;
   chuyển next action sang CP1.2.
 - 2026-07-21: xác minh Hermes đã cài thành công; ghi version/path/commit; chuyển

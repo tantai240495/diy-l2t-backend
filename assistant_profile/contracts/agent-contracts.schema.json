@@ -1,0 +1,954 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diy-l2t.local/schemas/agent-contracts.v2.json",
+  "title": "DIY-L2T agent contracts v2",
+  "description": "Validates one RouteDecision, TaskEnvelope, or ResultEnvelope mapped to Hermes Project and Kanban.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/RouteDecision"
+    },
+    {
+      "$ref": "#/$defs/TaskEnvelope"
+    },
+    {
+      "$ref": "#/$defs/ResultEnvelope"
+    }
+  ],
+  "$defs": {
+    "ApprovalClass": {
+      "enum": [
+        "none",
+        "task_policy",
+        "explicit_user",
+        "not_applicable"
+      ]
+    },
+    "CommitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{7,64}$"
+    },
+    "Correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "parent_session_id",
+        "parent_turn_id"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_session_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parent_turn_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ProjectRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug",
+        "primary_repository"
+      ],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+        },
+        "primary_repository": {
+          "type": "string",
+          "pattern": "^/"
+        }
+      }
+    },
+    "KanbanTaskRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "board_slug",
+        "task_id",
+        "parent_task_ids"
+      ],
+      "properties": {
+        "board_slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_task_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "Workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "path",
+        "base_ref",
+        "branch"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "scratch",
+            "dir",
+            "worktree"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "base_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "identifier",
+        "production"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "local",
+            "test"
+          ]
+        },
+        "identifier": {
+          "type": "string",
+          "minLength": 1
+        },
+        "production": {
+          "const": false
+        }
+      }
+    },
+    "RequiredCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "command",
+        "success"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "success": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "CheckResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "command",
+        "status",
+        "exit_code",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked",
+            "not_run"
+          ]
+        },
+        "exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    },
+    "Finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "severity",
+        "blocking",
+        "summary"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "Artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "path"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "ResultWorkspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "path",
+        "base_ref",
+        "branch",
+        "head_commit"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "scratch",
+            "dir",
+            "worktree"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "base_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "head_commit": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CommitSha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RouteDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "task_type",
+        "capability",
+        "route_kind",
+        "dispatch_mode",
+        "target",
+        "project_slug",
+        "board_slug",
+        "reason",
+        "approval_class",
+        "approval_required"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "diy-l2t.route-decision.v2"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_kind": {
+          "enum": [
+            "direct_tool",
+            "delegate",
+            "named_profile",
+            "needs_input"
+          ]
+        },
+        "dispatch_mode": {
+          "enum": [
+            "direct",
+            "delegate",
+            "kanban",
+            "user"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project_slug": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+        },
+        "board_slug": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "approval_class": {
+          "$ref": "#/$defs/ApprovalClass"
+        },
+        "approval_required": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "route_kind": {
+                "const": "named_profile"
+              }
+            },
+            "required": [
+              "route_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "dispatch_mode": {
+                "const": "kanban"
+              },
+              "project_slug": {
+                "type": "string"
+              },
+              "board_slug": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "approval_class": {
+                "const": "explicit_user"
+              }
+            },
+            "required": [
+              "approval_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "approval_required": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "TaskEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "task_id",
+        "request_id",
+        "task_type",
+        "requested_role",
+        "capability",
+        "project",
+        "kanban",
+        "workspace",
+        "environment",
+        "objective",
+        "inputs",
+        "acceptance_criteria",
+        "allowed_actions",
+        "forbidden_actions",
+        "required_checks",
+        "approval_class",
+        "expected_result_schema",
+        "correlation"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "diy-l2t.task.v2"
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_role": {
+          "enum": [
+            "coder",
+            "qa",
+            "reviewer"
+          ]
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project": {
+          "$ref": "#/$defs/ProjectRef"
+        },
+        "kanban": {
+          "$ref": "#/$defs/KanbanTaskRef"
+        },
+        "workspace": {
+          "$ref": "#/$defs/Workspace"
+        },
+        "environment": {
+          "$ref": "#/$defs/Environment"
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "acceptance_criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "forbidden_actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "required_checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/RequiredCheck"
+          }
+        },
+        "approval_class": {
+          "$ref": "#/$defs/ApprovalClass"
+        },
+        "expected_result_schema": {
+          "const": "diy-l2t.result.v2"
+        },
+        "correlation": {
+          "$ref": "#/$defs/Correlation"
+        }
+      }
+    },
+    "ResultEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "task_id",
+        "status",
+        "kanban_run_id",
+        "executor",
+        "summary",
+        "workspace",
+        "commits",
+        "artifacts",
+        "files_changed",
+        "checks",
+        "findings",
+        "residual_risks",
+        "actual_tools_used",
+        "forbidden_actions_observed",
+        "usage",
+        "workflow_gate",
+        "correlation"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "diy-l2t.result.v2"
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "approved",
+            "changes_requested",
+            "blocked",
+            "failed",
+            "needs_input"
+          ]
+        },
+        "kanban_run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "role",
+            "profile",
+            "provider",
+            "model",
+            "session_id"
+          ],
+          "properties": {
+            "role": {
+              "enum": [
+                "coder",
+                "qa",
+                "reviewer"
+              ]
+            },
+            "profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "session_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "workspace": {
+          "$ref": "#/$defs/ResultWorkspace"
+        },
+        "commits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CommitSha"
+          },
+          "uniqueItems": true
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Artifact"
+          }
+        },
+        "files_changed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckResult"
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Finding"
+          }
+        },
+        "residual_risks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "actual_tools_used": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "forbidden_actions_observed": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "input_tokens",
+            "output_tokens",
+            "estimated_cost_usd"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "observed",
+                "unavailable"
+              ]
+            },
+            "input_tokens": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "output_tokens": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "estimated_cost_usd": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "workflow_gate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "qa_required",
+            "qa_status",
+            "review_required",
+            "review_status",
+            "rework_cycles",
+            "finalizable"
+          ],
+          "properties": {
+            "qa_required": {
+              "type": "boolean"
+            },
+            "qa_status": {
+              "enum": [
+                "not_required",
+                "pending",
+                "passed",
+                "failed",
+                "blocked"
+              ]
+            },
+            "review_required": {
+              "type": "boolean"
+            },
+            "review_status": {
+              "enum": [
+                "pending",
+                "approved",
+                "changes_requested",
+                "blocked"
+              ]
+            },
+            "rework_cycles": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "finalizable": {
+              "type": "boolean"
+            }
+          }
+        },
+        "correlation": {
+          "$ref": "#/$defs/Correlation"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "executor": {
+                "properties": {
+                  "role": {
+                    "const": "reviewer"
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              },
+              "status": {
+                "not": {
+                  "const": "approved"
+                }
+              }
+            },
+            "required": [
+              "executor",
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "workflow_gate": {
+                "properties": {
+                  "finalizable": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "executor": {
+                "properties": {
+                  "role": {
+                    "const": "reviewer"
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              },
+              "workflow_gate": {
+                "properties": {
+                  "review_status": {
+                    "not": {
+                      "const": "approved"
+                    }
+                  }
+                },
+                "required": [
+                  "review_status"
+                ]
+              }
+            },
+            "required": [
+              "executor",
+              "workflow_gate"
+            ]
+          },
+          "then": {
+            "properties": {
+              "workflow_gate": {
+                "properties": {
+                  "finalizable": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "workflow_gate": {
+                "properties": {
+                  "finalizable": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "finalizable"
+                ]
+              }
+            },
+            "required": [
+              "workflow_gate"
+            ]
+          },
+          "then": {
+            "properties": {
+              "workflow_gate": {
+                "properties": {
+                  "review_status": {
+                    "const": "approved"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "workflow_gate": {
+                "properties": {
+                  "qa_required": {
+                    "const": true
+                  },
+                  "finalizable": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "qa_required",
+                  "finalizable"
+                ]
+              }
+            },
+            "required": [
+              "workflow_gate"
+            ]
+          },
+          "then": {
+            "properties": {
+              "workflow_gate": {
+                "properties": {
+                  "qa_status": {
+                    "const": "passed"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

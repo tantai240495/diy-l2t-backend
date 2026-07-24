@@ -1,0 +1,79 @@
+{
+  "schema_version": "diy-l2t.result.v2",
+  "task_id": "t_example_coder_001",
+  "status": "completed",
+  "kanban_run_id": "run_example_coder_001",
+  "executor": {
+    "role": "coder",
+    "profile": "diy-l2t-coder",
+    "provider": "copilot",
+    "model": "claude-sonnet-5",
+    "session_id": "session_example_coder"
+  },
+  "summary": "Implemented the calculator fix, added focused coverage, committed the bounded changes, and ran the required local checks.",
+  "workspace": {
+    "kind": "worktree",
+    "path": "/Users/example/work/sample-project/.worktrees/t_example_coder_001",
+    "base_ref": "main",
+    "branch": "assistant/t_example_coder_001",
+    "head_commit": "21f47a9bca021ab47dcab78f00e55795130509d8"
+  },
+  "commits": [
+    "21f47a9bca021ab47dcab78f00e55795130509d8"
+  ],
+  "artifacts": [
+    {
+      "kind": "git-worktree",
+      "path": "/Users/example/work/sample-project/.worktrees/t_example_coder_001"
+    }
+  ],
+  "files_changed": [
+    "calculator.py",
+    "tests/test_calculator.py"
+  ],
+  "checks": [
+    {
+      "id": "unit-tests",
+      "command": "python -m unittest -v",
+      "status": "pass",
+      "exit_code": 0,
+      "evidence": "All discovered tests passed."
+    },
+    {
+      "id": "diff-check",
+      "command": "git diff --check",
+      "status": "pass",
+      "exit_code": 0,
+      "evidence": "The command exited successfully with no output."
+    }
+  ],
+  "findings": [],
+  "residual_risks": [
+    "Independent review is still pending."
+  ],
+  "actual_tools_used": [
+    "file",
+    "terminal",
+    "git"
+  ],
+  "forbidden_actions_observed": [],
+  "usage": {
+    "status": "unavailable",
+    "input_tokens": null,
+    "output_tokens": null,
+    "estimated_cost_usd": null
+  },
+  "workflow_gate": {
+    "qa_required": false,
+    "qa_status": "not_required",
+    "review_required": true,
+    "review_status": "pending",
+    "rework_cycles": 0,
+    "finalizable": false
+  },
+  "correlation": {
+    "request_id": "req-example-001",
+    "parent_session_id": "session_example_parent",
+    "parent_turn_id": "turn_example_parent"
+  }
+}
