@@ -121,7 +121,7 @@ không xuất hiện trong core TaskEnvelope/ResultEnvelope.
 
 ### TaskEnvelope v2 trong Kanban
 
-Task body chứa JSON khớp `diy-l2t.task.v2`, gồm:
+Trusted task context chứa JSON khớp `diy-l2t.task.v2`, gồm:
 
 - project slug, primary repository, board/task lineage;
 - role, capability, objective và bounded inputs;
@@ -133,6 +133,14 @@ Task body chứa JSON khớp `diy-l2t.task.v2`, gồm:
 Parent không truyền toàn bộ conversation hoặc hidden reasoning. Worker gọi
 `kanban_show` và nhận TaskEnvelope, parent summaries/metadata, comments, prior
 attempts và exact workspace. Chỉ đưa vào bounded facts cần thiết.
+
+Khi caller đã biết Kanban task ID, TaskEnvelope nên nằm trực tiếp trong body.
+CLI `kanban create` tự sinh ID nên staged flow được phép: dừng/pause dispatcher,
+tạo stub, lấy actual ID, materialize/validate TaskEnvelope rồi append nó bằng
+trusted pre-dispatch comment. Không dựa riêng vào `--initial-status blocked`;
+phải xác minh task có sticky `blocked` event hoặc giữ gateway dừng cho tới khi
+envelope đã attach. Task chỉ được `unblock` sau khi envelope và workspace/branch
+lineage validate. Stub body một mình không được dispatch.
 
 ### ResultEnvelope v2
 

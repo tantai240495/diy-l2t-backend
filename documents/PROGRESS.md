@@ -1,18 +1,546 @@
 # Evidence và quyết định
 
-> File này chỉ ghi evidence, quyết định và kết quả smoke thực tế. Checkpoint
-> active duy nhất nằm ở [NOW.md](NOW.md); product contract nằm ở
+> File này chỉ ghi evidence, quyết định và kết quả smoke thực tế. Trạng thái
+> checkpoint hiện tại nằm ở [NOW.md](NOW.md); product contract nằm ở
 > [MASTER_GUIDE.md](MASTER_GUIDE.md).
 
 ## Trạng thái tổng quát
 
-- Cập nhật gần nhất: 2026-07-24
+- Cập nhật gần nhất: 2026-07-27
 - Phase 0: `verified` — documentation consolidation và v2 contract đã pass local
   validation.
-- Checkpoint active: P1 — Always-on Telegram control plane.
-- Trạng thái P1: `ready`; chưa thay đổi LaunchAgent/runtime trong Phase 0.
+- Checkpoint active: không có.
+- P2 — Project + Kanban coding vertical slice: `verified`.
+- Checkpoint deferred: P1 — Always-on Telegram control plane.
+- Trạng thái P1: baseline đã chụp; chưa thay đổi LaunchAgent/runtime; gateway
+  hiện dừng và foreground run thủ công vẫn là chế độ vận hành đã chọn.
 - Người thực hiện Hermes config/model/delegation/smoke commands trước đây: người
   dùng.
+
+## P2 — Project + Kanban coding vertical slice
+
+### Kích hoạt ngày 2026-07-24
+
+- Người dùng chủ động kích hoạt P2 trong khi P1 vẫn `deferred`.
+- P2 tuân theo Hermes-native Kanban v2, named profiles qua Kanban và preserved
+  worktree tại `<repository>/.worktrees/<task-id>`.
+- Không dùng worktree tập trung, không dùng `delegate_task` cho named workflow,
+  không push/PR/merge/deploy và không tự kích hoạt P3.
+
+### P2.1 — Project pilot và coding task
+
+| Trường | Giá trị |
+|---|---|
+| Project slug | `diy-l2t-backend` |
+| Canonical repository | `/Users/teq-tantai/Downloads/Work/diy-l2t-backend` |
+| Board slug | `diy-l2t-backend` |
+| Base ref | `master` |
+| Coding objective | Triển khai phép cộng tổng quát và chứng minh `add(1, 1) == 2` bằng unit test |
+
+Acceptance của coding task:
+
+1. Implementation không hardcode riêng kết quả `2`.
+2. Unit test xác nhận `add(1, 1) == 2`.
+3. Coder chạy required test và tạo local commit trong preserved worktree.
+4. Reviewer tự chạy lại test, không sửa tracked files và chỉ `approved` mới
+   finalizable.
+5. Không push, PR, merge, deploy hoặc sửa main checkout.
+
+P2.1 `done`; chưa tạo Hermes Project/board/worktree và chưa dispatch coder.
+
+### P2.2 — Repository conventions và bounded task shape
+
+P2.2 `done` bằng inspection chỉ-đọc:
+
+- Project dùng Poetry, Python `^3.13` và FastAPI; `package-mode=false`.
+- Application hiện chỉ có `backend/main.py`; chưa có test directory hoặc test
+  framework dependency.
+- `Makefile` chỉ có `setup/install`; không định nghĩa canonical test command.
+- Không có `AGENTS.md` hoặc `CLAUDE.md`; không sinh các file này từ GitNexus.
+- `.gitignore` ignore `.worktrees/`; `git check-ignore` đã xác nhận path probe.
+- GitNexus MCP query/context không khả dụng trong phiên; repository đủ nhỏ để
+  đọc trực tiếp nên không tạo/rebuild index và không chạy GitNexus.
+
+Bounded coding task được chốt:
+
+| Hạng mục | Giá trị |
+|---|---|
+| Implementation file | `backend/calculator.py` |
+| Test file | `tests/test_calculator.py` |
+| Behavior | Hàm cộng tổng quát; `add(1, 1) == 2` |
+| Required check | `poetry run python -m unittest discover -s tests -p 'test_*.py' -v` |
+| Success | Exit code `0`, test phép cộng pass |
+
+Hai file trên chưa được tạo. Main checkout hiện có hai thay đổi tài liệu
+`documents/NOW.md` và `documents/PROGRESS.md`; P2 chưa tạo worktree hoặc gọi
+named profile.
+
+### P2.3 — Runtime, profile và repository baseline
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Hermes runtime | `v0.19.0 (2026.7.20)`, upstream `d8bf3df2`, chậm hơn upstream 1 commit | pinned baseline; chưa update |
+| Orchestrator | `diy-l2t`: `openai-codex/gpt-5.5`, 79 skills | pass |
+| Coder | `diy-l2t-coder`: `copilot/claude-sonnet-5`, 0 skills | pass |
+| Reviewer | `diy-l2t-reviewer`: `openai-codex/gpt-5.6-sol`, 0 skills | pass |
+| Gateway | Không chạy tại thời điểm baseline | observed; chưa restart |
+| CLI toolsets | 17/23 built-in toolsets enabled; output không liệt kê Project hoặc Kanban | capability chưa xác nhận |
+| MCP policy | `company-gateway` include duy nhất `mattermost-read_post` | unchanged |
+| Repository | Branch `master`, HEAD `8d28b85bd7731d46ef170865dbb31e9b07032f13`, đồng bộ `origin/master` | pass baseline |
+| Main checkout | Chỉ `documents/NOW.md` và `documents/PROGRESS.md` modified | accepted uncommitted documentation baseline |
+| Worktree location | `.gitignore:33` ignore `.worktrees/`; probe được `git check-ignore` xác nhận | pass |
+
+P2.3 `done`. Không đọc secret, không update Hermes, không start gateway và chưa
+tạo Project/board/worktree/task. Việc Project/Kanban không xuất hiện trong
+`tools list` phải được giải quyết bằng exact installed-upstream inspection ở
+P2.4; không đoán command hoặc tự thay bằng custom dispatcher.
+
+### P2.4 — Exact upstream Project/Kanban shape
+
+P2.4 `done` bằng inspection chỉ-đọc trên exact checkout
+`d8bf3df255beccef4b55b85996884525e2ec28e3`:
+
+- `hermes project` hỗ trợ `create/list/show/set-primary/use/bind-board`; Project
+  state nằm trong per-profile `$HERMES_HOME/projects.db`.
+- `hermes kanban` hỗ trợ named boards, task create/assign/link/dispatch và
+  durable SQLite state. Named board có DB/workspaces/logs riêng.
+- Board có `default_workdir`; project binding đồng bộ giá trị này với primary
+  repository.
+- Task dùng `--project <slug>` tự chuyển từ scratch sang project-linked
+  `worktree`, path `<repo>/.worktrees/<task-id>`.
+- Branch mặc định có dạng
+  `<project-slug>/<task-id>-<title-slug>`.
+- Một task khác dùng `worktree:<exact-path>` sẽ reuse linked worktree đã tồn
+  tại; phù hợp reviewer chạy trên exact coder workspace.
+- Dispatcher mặc định chạy trong gateway mỗi 60 giây; standalone Kanban daemon
+  đã deprecated.
+- Kanban không xuất hiện trong `tools list` là expected: toolset này
+  workflow-gated. Dispatcher-spawned workers tự nhận lifecycle tools; một
+  orchestrator ngoài task chỉ có routing tools khi profile config liệt kê
+  `kanban` rõ ràng.
+- Project tools model-facing chỉ dành cho GUI/desktop; CLI/messaging dùng
+  `hermes project ...` hoặc `/kanban ...`, không expose `project_*` vào schema.
+
+Current orchestrator config:
+
+| Key | Giá trị |
+|---|---|
+| `toolsets` | `["hermes-cli"]` |
+| `kanban.dispatch_in_gateway` | `true` |
+| `kanban.dispatch_interval_seconds` | `60` |
+| `kanban.failure_limit` | `2` |
+| `platform_toolsets.telegram` | chưa set |
+
+Exact setup shape đã xác minh cho bước mutation kế tiếp:
+
+```sh
+diy-l2t kanban boards create diy-l2t-backend \
+  --name "DIY-L2T Backend" \
+  --default-workdir "/Users/teq-tantai/Downloads/Work/diy-l2t-backend"
+
+diy-l2t project create "DIY-L2T Backend" \
+  "/Users/teq-tantai/Downloads/Work/diy-l2t-backend" \
+  --slug diy-l2t-backend \
+  --primary "/Users/teq-tantai/Downloads/Work/diy-l2t-backend" \
+  --board diy-l2t-backend \
+  --use
+```
+
+`diy-l2t project list` trong Codex sandbox không thể khởi tạo per-profile
+`projects.db` và trả `sqlite3.OperationalError: unable to open database file`.
+Không xin quyền ghi trong P2.4; người dùng sẽ sở hữu bước tạo state local.
+Kanban hiện chỉ có board `default`, rỗng và chưa có `default_workdir`.
+
+### P2.5a — Tạo named board
+
+Người dùng đã tạo board bằng exact P2.4 command shape.
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Board slug | `diy-l2t-backend` | pass |
+| Display name | `DIY-L2T Backend` | pass |
+| Board DB | `~/.hermes/kanban/boards/diy-l2t-backend/kanban.db` | pass; DB riêng |
+| Default workdir | `/Users/teq-tantai/Downloads/Work/diy-l2t-backend` | pass; canonical repository |
+| Task counts | Rỗng, total `0` | pass baseline |
+| Current board | Vẫn là `default` | pass; không đổi global current |
+| Default board | Vẫn tồn tại, rỗng, `default_workdir=null` | pass; không bị sửa |
+
+P2.5a `done`. Chưa tạo Project, worktree hoặc Kanban task.
+
+### P2.5b — Tạo và bind Project
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Project slug | `diy-l2t-backend` | pass |
+| Project ID | `p_ddf63d14` | observed opaque ID |
+| Project name | `DIY-L2T Backend` | pass |
+| Primary repository | `/Users/teq-tantai/Downloads/Work/diy-l2t-backend` | pass |
+| Folder mapping | Chỉ canonical repository trên | pass |
+| Bound board | `diy-l2t-backend` | pass |
+| Active project | Được set bằng `--use` trong profile `diy-l2t` | pass |
+
+P2.5 `done`: Project và board map đúng canonical repository, mỗi bên có state
+riêng phù hợp contract. Chưa tạo task/worktree hoặc dispatch profile.
+
+Exact upstream behavior yêu cầu có Kanban task ID trước khi materialize
+`<repository>/.worktrees/<task-id>`. Checklist P2 được chỉnh theo thứ tự thật:
+materialize envelope + create task trước, dispatcher tạo/reuse worktree sau;
+không tạo task ID hoặc worktree path giả.
+
+### P2.6a — RouteDecision và self-ID staging constraint
+
+RouteDecision thực tế đã được materialize ngoài repository:
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Runtime artifact | `/private/tmp/diy-l2t-p2/route-decision.json` | created |
+| Request ID | `req-p2-addition-001` | opaque lineage |
+| Route | `named_profile` → `kanban` → `diy-l2t-coder` | pass |
+| Project/board | `diy-l2t-backend` / `diy-l2t-backend` | pass |
+| Approval | `task_policy`, không cần external approval | pass |
+| JSON syntax | `python3 -m json.tool` | pass |
+| Draft 2020-12 schema | `Draft202012Validator.validate` | pass |
+| SHA-256 | `a9985d1153df6c206a6ca9f6c8bd771a489be026aa523a20520b1a9c3a4c6977` | recorded |
+
+`shasum` chỉ phát locale warning và vẫn exit `0`; không ảnh hưởng artifact.
+
+Runtime constraint được phát hiện trước khi tạo task:
+
+- Hermes tự sinh Kanban task ID trong `kanban create`; CLI không nhận caller
+  supplied task ID.
+- TaskEnvelope v2 yêu cầu actual task ID, worktree path và branch chứa ID đó.
+- Vì vậy không thể materialize final TaskEnvelope trước `kanban create` mà
+  không bịa ID/path.
+- Safe staged flow được đề xuất: tạo task ở `--initial-status blocked`, lấy
+  actual ID, materialize + validate final TaskEnvelope, append nó vào trusted
+  pre-dispatch comment, rồi mới `unblock`.
+- Worker context gồm body và toàn bộ comments, nên worker nhận exact validated
+  envelope trước dispatch; không cần custom dispatcher hoặc direct SQLite edit.
+
+Chưa tạo Kanban task. Việc dùng trusted pre-dispatch comment thay cho body-only
+TaskEnvelope là contract refinement cần được chốt trước P2.6b.
+
+Người dùng chấp nhận refinement này. Master Guide và active checklist đã được
+cập nhật: trusted task context có thể chứa TaskEnvelope trong body hoặc trusted
+pre-dispatch comment; staged task phải giữ `blocked` cho tới khi actual
+ID/path/branch và schema/lineage đều validate. Schema v2 không đổi.
+
+### P2.6b — Blocked coder stub và final TaskEnvelope
+
+Blocked coder stub đã được người dùng tạo:
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Task ID | `t_9d2044b7` | actual opaque Kanban ID |
+| Board | `diy-l2t-backend` | pass |
+| Assignee | `diy-l2t-coder` | pass |
+| Status | `blocked` | pass; không dispatch |
+| Project ID | `p_ddf63d14` | pass |
+| Workspace kind | `worktree` | pass |
+| Workspace path | `/Users/teq-tantai/Downloads/Work/diy-l2t-backend/.worktrees/t_9d2044b7` | pass |
+| Branch | `diy-l2t-backend/t_9d2044b7-implement-integer-addition-with-unit-tes` | pass |
+| Retry/runtime | `max_retries=1`, `max_runtime=20m` từ create contract | pass |
+| Session | Chưa có | expected pre-dispatch |
+
+Final coder TaskEnvelope đã được materialize tại
+`/private/tmp/diy-l2t-p2/coder-task-envelope.json`:
+
+- Root và Kanban task ID cùng là `t_9d2044b7`.
+- Base commit là Phase 0 HEAD
+  `8d28b85bd7731d46ef170865dbb31e9b07032f13`.
+- Allowed files chỉ gồm `backend/calculator.py` và
+  `tests/test_calculator.py`.
+- Required checks gồm focused `unittest`, `git diff --check` và clean status
+  sau local commit.
+- JSON syntax, Draft 2020-12 schema và route/task lineage đều pass.
+- SHA-256:
+  `749394b0d4141948bd3b2eaa4b20c40b4d63f178f5de5eb8852f48dde1bd43cb`.
+
+Artifact chưa được attach vào task. Sandbox-side `kanban show` không thể tạo
+board init-lock ngoài workspace và báo `Operation not permitted`; không xin
+quyền ghi vì Kanban state do người dùng thao tác. Task phải tiếp tục giữ
+`blocked` cho tới khi trusted comment và post-attach evidence pass.
+
+### P2.6c — Comment attach và unexpected pre-envelope dispatch
+
+Comment command báo thành công và task hiện `blocked`, nhưng event history cho
+thấy task đã bị dispatch một lần trước khi comment được attach:
+
+```text
+created(blocked) → promoted → claimed(run 1) → spawned → heartbeat → blocked
+```
+
+Root cause đã xác nhận trong exact upstream source:
+
+- `--initial-status blocked` tạo row status `blocked` nhưng không tạo sticky
+  `blocked` event.
+- `recompute_ready()` xem blocked task không có sticky event là recoverable.
+- Task không có parent nên được auto-promote sang `ready`.
+- Gateway đã chạy thủ công (PID được quan sát), vì vậy embedded dispatcher claim
+  và spawn task.
+
+Worker xử lý fail-closed: thấy stub body và chưa có comment nên không code, gọi
+block với `kind=needs_input`, kết thúc run 1 là `blocked`. Post-run evidence:
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Worktree | `<repo>/.worktrees/t_9d2044b7` tồn tại | materialized |
+| Branch | Expected deterministic branch | pass |
+| HEAD | `8d28b85bd7731d46ef170865dbb31e9b07032f13` | unchanged |
+| Worktree status | Sạch | pass; không code mutation |
+| Diff check | Không output | pass |
+| Main checkout | Vẫn chỉ có ba product-doc changes do P2 tracking | task worker không sửa |
+| Gateway | Foreground, running manually | observed |
+
+Run 1 là staging/control-plane incident, không phải coder implementation run và
+không được dùng làm success evidence. Worker-emitted block hiện tạo sticky event,
+nên task không được auto-promote lại trước explicit `unblock`.
+
+Comment event ghi length `3025`, bằng byte length của source TaskEnvelope sau
+khi command substitution bỏ trailing newline. Attachment copy hiển thị body
+length `3022` và mất một space trong `main checkout`, trong khi JSON vẫn
+schema-valid; cần hash trực tiếp từ board output để phân biệt copy artifact với
+stored-comment mutation. Expected stored-body SHA-256 là
+`fe199557b0869f7c6229109214f85b8c021c8016efb65205379d9573222380ef`.
+
+Runbook đã được harden: staged flow phải pause dispatcher hoặc xác minh sticky
+block; không dựa riêng vào `--initial-status blocked`. Chưa unblock task.
+
+User-side direct board hash check đã xác nhận stored comment nguyên vẹn:
+
+```text
+length: 3025
+sha256: fe199557b0869f7c6229109214f85b8c021c8016efb65205379d9573222380ef
+status: blocked
+runs: 1
+```
+
+Pre-dispatch Git/runtime invariant:
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Main HEAD | `8d28b85bd7731d46ef170865dbb31e9b07032f13` | unchanged |
+| Main tracked changes | Chỉ `MASTER_GUIDE.md`, `NOW.md`, `PROGRESS.md` | expected P2 docs |
+| Main binary diff SHA-256 | `f9560c6e7201203245ec0ef8e24e9c8bd112a35580925ca03fe815ebe5e18e94` | immutable comparison baseline |
+| Coder worktree HEAD | Same Phase 0 HEAD | pass |
+| Coder worktree status | Sạch | pass |
+| Gateway | Foreground PID opaque, dispatcher available | observed |
+
+Task vẫn `blocked`; chưa có implementation run sau validated envelope.
+
+### P2.7 — Coder implementation run
+
+Task `t_9d2044b7` được explicit `unblock` và dispatch sau khi trusted
+TaskEnvelope đã có trong context.
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Successful run | Run `2`, session `20260727_085831_a8feb7` | completed |
+| Profile/model | `diy-l2t-coder`, `copilot/claude-sonnet-5` | pass |
+| Worktree | `<repo>/.worktrees/t_9d2044b7` | preserved, clean |
+| Branch | `diy-l2t-backend/t_9d2044b7-implement-integer-addition-with-unit-tes` | pass |
+| Commit | `a535e571d4b388040413b44e19fc0f68c3005af7` | local only |
+| Changed files | `backend/calculator.py`, `tests/test_calculator.py` | bounded set |
+| Unit tests | Focused `unittest` command, 2 tests | pass |
+| Diff/status | `git diff --check`; clean status sau commit | pass |
+| Remote containment | Không remote branch nào chứa coder commit | không push |
+
+Implementation trả `left + right`; tests cover `add(1, 1) == 2` và mixed-sign
+case. Main HEAD vẫn là
+`8d28b85bd7731d46ef170865dbb31e9b07032f13`; coder không sửa main checkout.
+
+Run 2 ban đầu chỉ ghi completion metadata rút gọn, không khớp
+`diy-l2t.result.v2`. Recovery dùng exact upstream
+`kanban edit --result/--summary/--metadata` để backfill schema-valid coder
+ResultEnvelope. Envelope giữ gate tại thời điểm coder bàn giao:
+`review_status=pending`, `finalizable=false`.
+
+### P2.8 — Reviewer dependency và independent approval
+
+Reviewer task `t_59ada1a4` là child của coder task, reuse exact coder worktree
+và commit. Final TaskEnvelope nằm trong trusted pre-dispatch comment và giới
+hạn reviewer ở read/diff/check, không cho sửa tracked files hoặc commit.
+
+Hai recovery run đầu không được tính là review success:
+
+- run `3` crash trước tool execution vì `gpt-5.6-sol` không được hỗ trợ với
+  ChatGPT/Codex account;
+- run `4` crash trước tool execution vì credential `openai-codex/gpt-5.5`
+  chạm usage limit;
+- người dùng re-authenticate profile; profile được verify lại là
+  `openai-codex/gpt-5.5` và credential không còn rate-limit marker.
+
+Successful reviewer evidence:
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Successful run | Run `5`, session `20260727_091556_492c71` | completed |
+| Profile/model | `diy-l2t-reviewer`, `openai-codex/gpt-5.5` | pass |
+| Reviewed range | `8d28b85...a535e571` | exact base/head |
+| Changed-file check | Chỉ hai allowed files | pass |
+| Unit tests | Focused `unittest`, 2 tests | pass |
+| Status before/after | Không output | clean |
+| Reviewer mutation | Không tracked edit, không commit | pass |
+| Verdict | `approved` | pass |
+
+Reviewer run 5 ban đầu cũng ghi metadata không đúng full ResultEnvelope schema.
+Recovery backfill bằng `kanban edit` đã tạo ResultEnvelope chuẩn với
+`review_status=approved`, `finalizable=true`, không findings và không forbidden
+action.
+
+### P2.9 — Contract closure và residual transport gap
+
+Read-only copy của board database được validate bằng repository Draft 2020-12
+schema. Năm artifact cùng request lineage `req-p2-addition-001` đều pass:
+
+1. RouteDecision v2.
+2. Coder TaskEnvelope v2.
+3. Reviewer TaskEnvelope v2.
+4. Coder ResultEnvelope v2.
+5. Reviewer ResultEnvelope v2.
+
+RouteDecision temp artifact cũ đã hết vòng đời. Cùng schema-valid object được
+materialize lại thành durable orchestrator comment trên coder task; closure
+không còn phụ thuộc file trong `/private/tmp`.
+
+Final repository/workspace checks:
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Main checkout | HEAD `8d28b85...`; chỉ ba product docs modified | application code unchanged |
+| Preserved worktree | HEAD `a535e571...`; clean | pass |
+| Local commit delta | Đúng một coder commit | pass |
+| Remote branch contains commit | Không có | không push |
+| Reviewer ResultEnvelope | schema-valid, `approved`, `finalizable=true` | pass |
+| External actions | Không PR, merge, deploy hoặc production mutation | pass |
+
+Transport smoke prerequisite đã được chuẩn bị:
+
+- orchestrator `toolsets` đổi từ `["hermes-cli"]` sang
+  `["hermes-cli", "kanban"]`;
+- manual gateway được restart và log xác nhận Telegram polling connected;
+- embedded Kanban dispatcher giữ singleton lock và chạy interval 60 giây;
+- MCP policy vẫn chỉ expose `mattermost-read_post`; credential values không
+  được đọc hoặc ghi vào evidence.
+
+P2 chưa thể đánh `verified`: workflow này được orchestrator staged bằng local
+CLI/Kanban commands, không bắt đầu từ authorized Telegram DM. Route/Task/Result
+correlation có cùng request ID nhưng `parent_session_id` và `parent_turn_id`
+vẫn `null`. Acceptance số 2 và phần transport của acceptance số 7 cần một
+Telegram coding request thực tế tạo đúng coder → reviewer dependency. Vì bước
+này cần người dùng gửi DM từ allowlisted account, P2 chuyển `needs_input`; P3
+không được tự kích hoạt.
+
+### P2.10 — Authorized Telegram recovery slice
+
+Authorized Telegram request với marker `P2_TELEGRAM_SMOKE` đi vào gateway
+session `20260721_170402_e4ec4e1a`. Attempt đầu bị từ chối fail-closed trước
+dispatch:
+
+- task `t_91aea73e` dùng `workspace_kind=dir` ngoài canonical repository, body
+  không khớp `diy-l2t.task.v2` và chứa raw transport identity;
+- temporary worktree và base-only branch đều sạch, sau đó được xóa;
+- task được archive rồi purge bằng guarded upstream command
+  `kanban archive --rm`; `kanban show` hiện trả `no such task`;
+- audit thay thế đã được ghi trên recovery task, chỉ giữ opaque session/task
+  lineage và không giữ user name, chat/user/message ID hoặc credential.
+
+Root cause là orchestrator đọc stale editor memory rồi tự tạo centralized
+worktree thay vì đọc project docs/contracts và dùng model-facing
+`kanban_create` với project binding. Profile guard được bổ sung ngoài repository
+tại `~/.hermes/profiles/diy-l2t/SOUL.md`; orchestrator toolsets giữ
+`["hermes-cli", "kanban"]`. Guard yêu cầu canonical project/board, đọc schema,
+không tự tạo worktree, staging fail-closed và không ghi raw transport identity.
+
+Blocked notification từ attempt lỗi tạo recovery session
+`20260727_093800_9046fb8b` và request
+`p2-telegram-smoke-recovery-20260727-093800`. Recovery dùng đúng Project
+`diy-l2t-backend`, board `diy-l2t-backend` và dependency:
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Coder task | `t_6117a072`, run `9`, session `20260727_094317_c11663` | completed |
+| Reviewer task | `t_26775b64`, child của coder, run `10`, session `20260727_094439_fb0c24` | approved |
+| Preserved worktree | `<repo>/.worktrees/t_6117a072` | project-linked, clean |
+| Branch | `diy-l2t-backend/t_6117a072-p2-telegram-smoke-recovery-implement-mul` | local only |
+| Commit | `3e352f862b743aacba0c2bc65e608063e07bfacd` | local only |
+| Changed files | `backend/multiplier.py`, `tests/test_multiplier.py` | exact bounded set |
+| Unit tests | `python -m unittest discover -s tests`, 4 tests | pass |
+| Diff/status | `git diff --check`; clean worktree | pass |
+| Remote containment | Không remote branch nào chứa commit | không push |
+
+Coder run `8` đã tạo commit nhưng tự block để chờ review, nên không được tính là
+terminal success. Upstream triage/specify recovery tạo run `9`, re-verify clean
+commit và hoàn tất với ResultEnvelope có `review_status=pending`,
+`finalizable=false`. Reviewer run `10` độc lập resolve exact HEAD, inspect
+base-to-HEAD diff, chạy lại 4 tests, kiểm tra whitespace/clean status và trả
+`approved`, `finalizable=true`, không finding hoặc forbidden action.
+
+Fresh board snapshot được validate bằng
+`Draft202012Validator` từ Hermes local venv. Năm durable artifact cùng recovery
+request lineage đều pass:
+
+1. RouteDecision v2.
+2. Coder TaskEnvelope v2.
+3. Reviewer TaskEnvelope v2.
+4. Coder ResultEnvelope v2.
+5. Reviewer ResultEnvelope v2.
+
+Validator cũng xác nhận exact coder/reviewer lineage, cùng worktree/HEAD,
+review gate cuối `approved`, không raw transport identity key trong năm
+contract và malformed task không còn trên board.
+
+Gateway được start tạm thời sau reviewer completion để tiêu thụ callback. Cả hai
+task subscription được xử lý và gỡ. Redacted session export xác nhận source
+Telegram DM có final assistant message sau reviewer completion; message này
+tham chiếu verdict `approved`, coder/reviewer task và commit. Gateway sau đó
+dừng sạch bằng `SIGINT`; không cài service.
+
+Final repository checks:
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Main checkout | HEAD `8d28b85...`; chỉ ba product docs modified | application code unchanged |
+| Telegram worktree | HEAD `3e352f86...`; clean | pass, preserved |
+| Prior CLI worktree | HEAD `a535e571...`; clean | pass, preserved |
+| External actions | Không push, PR, merge, deploy hoặc production mutation | pass |
+| Secret/raw identity | Không xuất hiện trong repository evidence | pass |
+
+### P2 final verdict
+
+Status: `verified`
+
+Tám acceptance criteria đều pass. Authorized Telegram ingress có causal audit
+chain tới project-linked coder → reviewer workflow; code chỉ nằm trong preserved
+worktree, commit local và tests pass; reviewer độc lập approve trước final
+Telegram response; năm v2 contract schema-valid; malformed evidence chứa raw
+identity đã được purge. P2 đóng ngày 2026-07-27. P1 vẫn `deferred` và P3 chưa
+được tự kích hoạt.
+
+## P1 — Always-on Telegram control plane
+
+### Baseline ngày 2026-07-24
+
+| Hạng mục | Evidence | Trạng thái |
+|---|---|---|
+| Thời điểm | `2026-07-24T11:10:08+0700` | observed |
+| Hermes runtime | `v0.19.0 (2026.7.20)`, upstream `d8bf3df2`, Git install | pinned baseline |
+| Update status | Runtime báo chậm hơn upstream 1 commit | observed; không update trong P1 |
+| Profile | `diy-l2t`, `openai-codex/gpt-5.5` | pass |
+| Gateway | PID opaque đã được quan sát; chạy manual, không phải system service | pass baseline |
+| Profile config | SHA-256 `1d96c5ece715a502027a7c68e0f3768d135aed813a98a302758bde982a4d490c` | pass; không đọc secret |
+
+### Quyết định phạm vi
+
+- Người dùng quyết định không tạo checkpoint-specific backup cho P1.
+- Ngày 2026-07-24, người dùng tạm hoãn P1 vì foreground gateway thủ công đã đủ
+  cho nhu cầu hiện tại. LaunchAgent/auto-start/auto-restart vẫn ở roadmap.
+- Không tự kích hoạt P2 hoặc phase khác trong khi P1 đang `deferred`.
+- P1 không chạy `hermes update` và không được sửa profile config/state. Nếu
+  upstream service setup của version đã pin cần mutation đó, checkpoint phải
+  chuyển `needs_input`.
+- Safety/rollback evidence thay cho backup là config checksum trước/sau không
+  đổi, unload LaunchAgent và chạy lại foreground gateway bằng cùng profile/state.
 
 ## Phase 0 — Consolidation và Hermes-native Kanban direction
 
