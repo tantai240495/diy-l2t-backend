@@ -64,8 +64,6 @@
     "estimated_cost_usd": null
   },
   "workflow_gate": {
-    "qa_required": false,
-    "qa_status": "not_required",
     "review_required": true,
     "review_status": "pending",
     "rework_cycles": 0,

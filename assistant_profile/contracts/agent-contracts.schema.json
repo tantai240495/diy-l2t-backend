@@ -504,7 +504,6 @@
         "requested_role": {
           "enum": [
             "coder",
-            "qa",
             "reviewer"
           ]
         },
@@ -634,7 +633,6 @@
             "role": {
               "enum": [
                 "coder",
-                "qa",
                 "reviewer"
               ]
             },
@@ -759,26 +757,12 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "qa_required",
-            "qa_status",
             "review_required",
             "review_status",
             "rework_cycles",
             "finalizable"
           ],
           "properties": {
-            "qa_required": {
-              "type": "boolean"
-            },
-            "qa_status": {
-              "enum": [
-                "not_required",
-                "pending",
-                "passed",
-                "failed",
-                "blocked"
-              ]
-            },
             "review_required": {
               "type": "boolean"
             },
@@ -792,8 +776,7 @@
             },
             "rework_cycles": {
               "type": "integer",
-              "minimum": 0,
-              "maximum": 2
+              "minimum": 0
             },
             "finalizable": {
               "type": "boolean"
@@ -908,40 +891,6 @@
                 "properties": {
                   "review_status": {
                     "const": "approved"
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "workflow_gate": {
-                "properties": {
-                  "qa_required": {
-                    "const": true
-                  },
-                  "finalizable": {
-                    "const": true
-                  }
-                },
-                "required": [
-                  "qa_required",
-                  "finalizable"
-                ]
-              }
-            },
-            "required": [
-              "workflow_gate"
-            ]
-          },
-          "then": {
-            "properties": {
-              "workflow_gate": {
-                "properties": {
-                  "qa_status": {
-                    "const": "passed"
                   }
                 }
               }

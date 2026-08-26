@@ -1,10 +1,11 @@
 # DIY-L2T Local Assistant
 
 Assistant cá nhân chạy local trên macOS, nhận yêu cầu từ Telegram và dùng Hermes
-Agent để gọi tool trực tiếp hoặc điều phối coder, QA và reviewer qua Kanban.
+Agent để gọi tool trực tiếp hoặc điều phối coder và reviewer qua Kanban, có
+điểm chờ người dùng xác nhận giữa hai bước.
 
 ```text
-Telegram → Hermes orchestrator → tool | delegate | Kanban profiles → final reply
+Telegram → Hermes orchestrator → tool | delegate | Kanban (coder → [xác nhận] → reviewer) → final reply
 ```
 
 MVP chạy on-demand, dùng Git worktree của repository thật cho coding, tự động

@@ -14,7 +14,7 @@ hợp và gửi đúng một kết quả cuối về cuộc trò chuyện ban đ
 Telegram
   → diy-l2t orchestrator
   → direct MCP/native tool | delegate_task | Hermes Kanban
-  → coder / QA / reviewer / future profiles
+  → coder → [chờ người dùng xác nhận] → reviewer / future profiles
   → final result về Telegram
 ```
 
@@ -23,7 +23,6 @@ MVP phải hỗ trợ:
 - vận hành on-demand trên Mac, sau khi người dùng đăng nhập;
 - đọc Mattermost, pull request và task backlog qua MCP;
 - làm việc trên một repository đã đăng ký, tự code, kiểm tra và review độc lập;
-- viết/chạy Playwright test trên local hoặc test environment;
 - tạo AI news brief có nguồn, ngày và mức độ chắc chắn;
 - mở rộng capability, profile, transport và tool backend mà không thay runtime
   lõi.
@@ -34,10 +33,17 @@ MVP phải hỗ trợ:
   owner, Kanban dispatcher và task-state owner.
 - Repository này chỉ sở hữu policy, route registry, envelope schema, project
   conventions, tài liệu và smoke/acceptance evidence.
-- Hermes Project là workspace có tên cho người dùng. Mỗi codebase đăng ký một
-  project slug, một primary repository và một Kanban board tương ứng.
-- Named profile luôn đi qua Hermes Kanban. Không tạo FastAPI dispatcher, custom
-  queue, custom MCP dispatcher hoặc database song song.
+- Project là khái niệm project-owned (không phải Hermes "Project" — tool đó
+  chỉ dùng được trong GUI/desktop session). Mỗi codebase đăng ký một project
+  slug, một primary repository và một Kanban board tương ứng, orchestrator tự
+  nhớ qua Memory (§5).
+- Named profile luôn đi qua Hermes Kanban — đây là cơ chế duy nhất Hermes cung
+  cấp để orchestrator handoff việc cho một profile có tên/model riêng biệt
+  (không tool nào khác trong Hermes làm được việc này; xem §13). Giữa coder và
+  reviewer có một điểm block/unblock chủ đích: coder xong tự block task, chờ
+  người dùng xác nhận qua Telegram rồi mới dispatch sang reviewer. Không tạo
+  FastAPI dispatcher, custom queue, custom MCP dispatcher hoặc database song
+  song ngoài Kanban có sẵn của Hermes.
 - `delegate_task` chỉ phục vụ reasoning/research ngắn cần trả ngay về parent.
 - Coding mặc định bàn giao một branch trong preserved Git worktree của
   repository thật, đã commit và chưa push.
@@ -59,17 +65,20 @@ MVP phải hỗ trợ:
 | Telegram adapter/gateway | Hermes | Polling, allowlist, session, correlation và gửi reply |
 | Orchestrator `diy-l2t` | Hermes profile + policy của project | Hiểu intent, chọn route, xin input/approval, tổng hợp final |
 | Kanban board/dispatcher | Hermes | Durable task lifecycle, dependency, retry, comments, runs và handoff |
-| Project mapping | Hermes Project + registry của project này | Slug, board, primary repository và Telegram alias |
-| Named workers | Hermes profiles | Coder, QA, reviewer và profile tương lai |
+| Project mapping | Orchestrator Memory (`MEMORY.md`) | Slug, board, primary repository |
+| Named workers | Hermes profiles | Coder, reviewer và profile tương lai |
 | MCP transport/tool execution | Hermes | Credential, connection và bounded tool call |
 | Route/envelope contract | Repository này | Schema v2, capability registry và workflow gate |
 | Repository conventions | Repository đích | `AGENTS.md`, startup/test commands và local constraints |
 | Model/provider | Provider được cấu hình theo profile | Inference và usage/cost tương ứng |
 | Evidence | Hermes state/Kanban + repository artifacts | Run metadata, checks, commits, findings và audit |
 
-Kanban là control plane cho công việc qua nhiều named profiles. Mỗi board dùng
-SQLite local riêng và worker được dispatcher khởi chạy như một process có profile
-riêng. Gateway đang chạy cũng chứa dispatcher; không chạy thêm daemon cạnh tranh.
+Kanban là control plane cho công việc qua nhiều named profile — đây là cách
+duy nhất Hermes hỗ trợ để orchestrator handoff việc cho một profile có tên và
+model riêng biệt (`delegate_task` chỉ spawn subagent ẩn danh, không target
+được named profile). Mỗi board dùng SQLite local riêng và worker được
+dispatcher khởi chạy như một process có profile riêng. Gateway đang chạy cũng
+chứa dispatcher; không chạy thêm daemon cạnh tranh.
 
 `delegate_task` và Kanban cùng tồn tại nhưng không thay thế nhau:
 
@@ -77,7 +86,7 @@ riêng. Gateway đang chạy cũng chứa dispatcher; không chạy thêm daemon
 |---|---|
 | Một MCP/native call hữu hạn | `direct_tool` |
 | Parent cần một câu trả lời reasoning/research ngắn trước khi tiếp tục | `delegate_task` |
-| Qua named role, cần durable state, retry, human input hoặc audit | `named_profile` qua Kanban |
+| Qua named role, cần workspace riêng, model riêng, durable state hoặc audit | `named_profile` qua Kanban |
 | Thiếu project, target, credential, environment hoặc quyền | `needs_input` |
 
 Kanban worker có thể dùng `delegate_task` bên trong run cho một subtask ngắn,
@@ -96,7 +105,6 @@ là phải preview và nhận xác nhận riêng ngay trước mutation.
 | Short synthesis | So sánh/tổng hợp hữu hạn | delegate | Fresh subagent | `delegate_task` | Fresh context, bounded inputs | task-policy | Summary về parent | Delegation model | 4 | primitive verified |
 | Code implementation | Sửa code project X | named_profile | `diy-l2t-coder` | File/terminal/test tools | Preserved Git worktree, local/test | task-policy | Commit SHA, files, checks | Copilot/model | 2 | planned Kanban slice |
 | Independent review | Review thay đổi | named_profile | `diy-l2t-reviewer` | Read/diff/test tools | Exact coder worktree, read-only tracked files | task-policy | Findings + `approved`/`changes_requested` | OpenAI/model | 2 | profile verified; Kanban slice planned |
-| Browser/E2E QA | Viết/chạy Playwright | named_profile | `diy-l2t-qa` | Playwright/browser/terminal | Exact worktree, local/test only | task-policy | Exit code, screenshot, trace/video | OpenAI/model + test infra | 3 | planned |
 | Mattermost reply | Trả lời thread/post | direct_tool | `diy-l2t` | Một allowlisted MCP mutation | External service | explicit target + exact content | Mutation ID, no duplicate final | MCP backend nếu có | 4 | planned first write |
 | AI news brief | Tin AI hôm nay/tuần này | direct_tool hoặc delegate | `diy-l2t` | Curated RSS/HTTP + search fallback | Read-only web | task-policy | Links, dates, dedupe, uncertainty | Search/backend/model | 5 | planned |
 | Push/open PR/merge/deploy | Xuất bản code | direct_tool hoặc future workflow | Chưa promote | Git/MCP/CI tools | Repo/remote/environment cụ thể | explicit per action | Remote ID/SHA/checks | Git host/CI/model | 6+ | future |
@@ -150,7 +158,12 @@ lineage validate. Stub body một mình không được dispatch.
 - workspace, branch, base/head commit và changed files;
 - check commands, exit status/evidence, artifacts và findings;
 - residual risks, usage/cost nếu quan sát được;
-- workflow gate: QA/review status, rework count và `finalizable`.
+- workflow gate: review status, rework count và `finalizable`.
+
+`summary` là mô tả cô đọng (tối đa 4000 ký tự), không phải nơi nhúng raw diff.
+Khi orchestrator relay kết quả coder về Telegram, chỉ gửi bảng tóm tắt dựng từ
+`summary` + `files_changed` + `checks` + `workspace.path`; người dùng tự xem
+diff đầy đủ trực tiếp trong worktree.
 
 Reviewer phải để `finalizable=false` trừ khi `review_status=approved`. Status
 khác `approved` không được diễn giải thành success ở Telegram.
@@ -162,16 +175,25 @@ reasoning không được đưa vào task metadata.
 
 ### Đăng ký project
 
-Mỗi codebase có:
+Orchestrator tự nhớ project qua **Memory** (`MEMORY.md`, ghi bằng tool
+`memory`) — không dùng Hermes "Project" (`project_create`/`project_list`),
+vì tool đó chỉ chạy trong GUI/desktop session, không gọi được từ session do
+Telegram trigger. Mỗi project có:
 
-- một Hermes Project với slug dùng làm Telegram alias;
+- một slug, dùng khi cần phân biệt nhiều project trong hội thoại;
 - một Kanban board cùng phạm vi;
 - một primary repository canonical;
 - `AGENTS.md` trong repository mô tả conventions, startup command, test command,
-  cấu trúc và các constraint riêng.
+  cấu trúc và các constraint riêng — Hermes tự nạp khi làm việc trong repo đó,
+  không cần orchestrator nhớ thay.
 
-Nếu prompt không nói project và session không suy ra duy nhất một project, bot
-phải hỏi lại. Không đoán đường dẫn từ tên gần giống.
+Đăng ký project mới qua chat: người dùng cho biết tên và path repo, orchestrator
+tự chạy `hermes kanban boards create <slug> --switch` rồi ghi một entry vào
+Memory (`memory(action='add', ...)`) — không ai sửa file nào bằng tay.
+
+Nếu prompt không nói project và Memory chỉ có đúng một project → orchestrator
+tự suy ra, khỏi hỏi. Nếu Memory có nhiều project và không suy ra được duy nhất
+một cái → bot phải hỏi lại. Không đoán đường dẫn từ tên gần giống.
 
 ### Worktree mặc định
 
@@ -183,8 +205,8 @@ trên project thật dùng:
 ```
 
 Mỗi task tạo branch/worktree dưới repository thật. `.worktrees/` phải bị ignore
-khỏi Git status. Coder, QA và reviewer chạy tuần tự trên cùng exact worktree;
-không có hai writer đồng thời.
+khỏi Git status. Coder và reviewer chạy tuần tự trên cùng exact worktree; không
+có hai writer đồng thời.
 
 Worktree được giữ sau khi task hoàn tất để người dùng kiểm tra. Không tự xóa
 dirty/unmerged worktree. Cleanup chỉ xảy ra khi target đã được xác nhận và trạng
@@ -195,15 +217,26 @@ thái recoverable.
 ```text
 TaskEnvelope
   → coder: implementation + unit/integration tests
-  → QA nếu có browser/E2E requirement: Playwright + artifacts
+  → [task blocks; chờ người dùng xác nhận qua Telegram]
   → reviewer: diff + checks + independent review, không sửa tracked files
   → approved | changes_requested | blocked
 ```
 
+Coder và reviewer là Kanban worker, dispatch qua board của project — cách duy
+nhất Hermes hỗ trợ để handoff cho một profile có tên/model riêng biệt (xem
+§13). Mỗi khi coder hoàn tất một phiên bản (kể cả sau rework), task tự chuyển
+`blocked` thay vì tự động dispatch sang reviewer. Orchestrator gửi Telegram
+một bảng tóm tắt ngắn — task ID, commit SHA, đường dẫn worktree, danh sách
+file đổi, kết quả checks — không nhúng raw diff; người dùng tự xem diff đầy
+đủ trực tiếp trong worktree. Khi người dùng xác nhận (ví dụ "review đi"),
+orchestrator unblock task và reviewer được dispatcher pick lên.
+
 - Coder sở hữu implementation và unit/integration tests.
-- QA sở hữu Playwright tests, fixtures và config trong allowlist của task.
 - Reviewer đọc diff, chạy checks cần thiết và không sửa tracked files.
-- Tối đa hai vòng `changes_requested`; vòng kế tiếp chuyển `needs_input`.
+- Không giới hạn cứng số vòng `changes_requested`; sau mỗi vòng sửa, coder
+  quay lại `blocked` chờ xác nhận trước khi reviewer chạy lại. Nếu hai vòng
+  liên tiếp trả cùng finding (không tiến triển), orchestrator phải dừng và
+  trả `needs_input` thay vì lặp vô hạn.
 - Bàn giao mặc định: local branch đã commit, commit SHA, changed files, checks
   và residual risks. Không push, PR, merge hoặc deploy.
 - Main checkout không được thay đổi bởi task worker.
@@ -215,24 +248,65 @@ Initial profiles:
 | Orchestrator | `diy-l2t` | OpenAI Codex `gpt-5.5` |
 | Coder | `diy-l2t-coder` | direct Copilot `claude-sonnet-5` |
 | Reviewer | `diy-l2t-reviewer` | OpenAI Codex `gpt-5.6-sol` |
-| QA | `diy-l2t-qa` | OpenAI Codex `gpt-5.6-sol` |
 
 Model names là baseline đã chọn, không phải secret. Khi provider đổi model,
-registry, smoke evidence và cost assumptions phải được cập nhật.
+profile config, smoke evidence và cost assumptions phải được cập nhật.
 
-## 6. Playwright policy
+### SOUL.md, Skill và Memory — nội dung mỗi profile
 
-- Chỉ truy cập local hoặc test environment được TaskEnvelope chỉ rõ.
-- Production URL, domain ngoài allowlist và mutation ngoài test scope bị chặn.
+Hermes không có registry riêng cho danh sách profile/route/policy. Policy sản
+phẩm này (route theo capability, Kanban, TaskEnvelope, chờ xác nhận...) không
+thuộc `SOUL.md` (chỉ dành cho giọng điệu/tính cách, xem ví dụ chuẩn ở
+[Personality & SOUL.md](https://hermes-agent.nousresearch.com/docs/user-guide/features/personality))
+và cũng không thuộc `AGENTS.md` (chỉ dành cho quy ước riêng của repository
+đích). Bốn chỗ thật sự cần điền cho mỗi profile:
+
+| Hermes concept | Chứa gì | Ai ghi | Khi nào nạp |
+|---|---|---|---|
+| `SOUL.md` | Giọng điệu, tính cách | Người viết tay, hiếm sửa | Luôn luôn |
+| Skill | Quy trình vận hành (routing, Kanban, TaskEnvelope, chờ xác nhận) | Người viết tay | On-demand khi cần |
+| `AGENTS.md` (trong repo đích) | Quy ước riêng một codebase (lệnh test, stack) | Người viết tay | Khi làm việc trong repo đó |
+| Memory (`MEMORY.md`) | Sự thật động — project nào, repo nào, board nào | Agent tự ghi qua tool `memory` | Luôn luôn (frozen snapshot đầu session) |
+
+**Orchestrator (`diy-l2t`)** — không phải Kanban worker nên không cần
+`--description`.
+- SOUL.md: chỉ giọng điệu (ngắn gọn, trực tiếp, không sycophancy) — không
+  chứa policy.
+- Skill (vd `diy-l2t-coding-pipeline`, "When to Use" = có yêu cầu code trên
+  project đã biết): tra Memory tìm project → tạo board/ghi Memory nếu là
+  project mới (§5 "Đăng ký project") → tạo Kanban task theo staged flow (§4)
+  → sau khi coder `kanban_complete`, dừng, gửi Telegram bảng tóm tắt (không
+  raw diff), chờ xác nhận → unblock reviewer → chỉ một final reply mỗi
+  request → fail closed khi thiếu project/target/credential/approval.
+
+**Coder (`diy-l2t-coder`)** và **Reviewer (`diy-l2t-reviewer`)**
+- SOUL.md: chỉ giọng điệu (coder: thực dụng; reviewer: khó tính, cụ thể).
+- Không cần skill riêng — luật đứng (chỉ sửa file trong worktree, không
+  push/PR/merge/deploy, reviewer read-only...) đã nằm trong
+  `allowed_actions`/`forbidden_actions` của TaskEnvelope mà orchestrator tự
+  soạn mỗi task (§4); worker đọc đủ qua `kanban_show`, không cần nhớ sẵn.
+- `--description` (routing hint cho Kanban orchestrator, không phải policy):
+  - coder: "Implements and tests code changes inside the assigned Git
+    worktree; commits locally; never pushes, opens PRs, merges, or deploys."
+  - reviewer: "Independently reviews a coder's diff and checks inside the
+    exact same worktree; read-only; decides approved or changes_requested."
+
+Khi build thật: SOUL.md giữ vài dòng giọng điệu; phần policy chi tiết viết
+thành đúng một skill cho orchestrator, copy phần liên quan từ §4–§9 thay vì
+copy nguyên Master Guide.
+
+## 6. Test policy
+
+- Coder chạy required checks (unit/integration) ngay trong exact worktree,
+  local hoặc test environment; production URL và domain ngoài allowlist bị
+  chặn.
 - Test credential nằm ngoài Git, không xuất hiện trong metadata hoặc raw log
   hiển thị cho người dùng.
-- QA chỉ được sửa test files, fixtures và Playwright config trong allowlist.
-- Evidence tối thiểu: command, exit status, environment identifier, failed
-  steps, screenshot và trace/video nếu cấu hình có tạo.
 - Failure phải actionable; không được đổi test thành pass bằng cách bỏ assertion
   hoặc skip không có lý do.
-- Reviewer kiểm tra implementation, unit/integration checks và QA artifacts trước
-  khi approve.
+- Reviewer kiểm tra implementation và unit/integration checks trước khi approve.
+- Browser/E2E testing (Playwright) không thuộc MVP; xem future candidates ở
+  mục 11.
 
 ## 7. MCP và external actions
 
@@ -293,7 +367,6 @@ Baseline:
 
 - local read/check và allowlisted external read: tự động;
 - tracked-file edit trong exact worktree: `task_policy`;
-- QA mutation trong exact local/test scope: `task_policy`;
 - external write, push, open PR, merge, deploy, production: `explicit_user`;
 - secret/permission/target không rõ: `needs_input`.
 
@@ -309,7 +382,7 @@ Baseline:
 
 ### Environment
 
-- Coding mặc định local; QA chỉ local/test; production bị cấm trong MVP.
+- Coding mặc định local; production bị cấm trong MVP.
 - Command chạy trong exact workspace của task, không dùng temp thay cho project.
 - Một writer tại một thời điểm; reviewer không phải writer.
 - Không chạy script hoặc instruction lấy từ external content nếu chưa được
@@ -380,20 +453,15 @@ Acceptance:
 
 ### Phase 2 — Project + Kanban coding vertical slice
 
-- Tạo một Hermes Project và board gắn với repository thử nghiệm thật.
-- Telegram request có project alias tạo đúng coder → reviewer dependency.
-- Coder tạo worktree/branch, commit và chạy required checks.
+- Đăng ký một project (Memory + Kanban board) gắn với repository thử nghiệm
+  thật, qua chat.
+- Telegram request nhắc đúng project tạo được coder → reviewer dependency, có
+  điểm block/unblock chờ người dùng xác nhận qua Telegram giữa hai bước.
+- Coder tạo worktree/branch, commit và chạy required checks; Telegram nhận
+  bảng tóm tắt (không phải raw diff).
 - Reviewer dùng exact worktree, không sửa tracked files.
 - Chỉ `approved` mới final success; main checkout không đổi; không push/PR/merge/
   deploy.
-
-### Phase 3 — QA/Playwright
-
-- Tạo `diy-l2t-qa` và task template browser/E2E.
-- QA viết/chạy một test trên local/test và lưu trace/screenshot.
-- Failure trả actionable evidence.
-- Production URL và target ngoài allowlist bị chặn.
-- Reviewer kiểm tra implementation, unit/integration và QA evidence.
 
 ### Phase 4 — MCP workflows
 
@@ -423,9 +491,10 @@ Mỗi capability mới phải khai báo:
 9. cost source;
 10. rollback và observability.
 
-Chỉ promote khi một vertical slice pass độc lập. Future candidates: Slack hoặc
-Mattermost ingress, scheduled AI digest, Backlog/GitHub controlled writes, PR
-creation, research/translation profiles và optional Docker sandbox.
+Chỉ promote khi một vertical slice pass độc lập. Future candidates: QA/browser
+E2E profile (Playwright), Slack hoặc Mattermost ingress, scheduled AI digest,
+Backlog/GitHub controlled writes, PR creation, research/translation profiles
+và optional Docker sandbox.
 
 ## 12. Quy trình thêm profile, capability hoặc transport
 
@@ -458,9 +527,17 @@ creation, research/translation profiles và optional Docker sandbox.
 
 Machine-readable artifacts:
 
-- `assistant_profile/agents.example.yaml`: registry/profile/workflow contract v2;
-- `assistant_profile/contracts/agent-contracts.schema.json`: JSON Schema v2;
+- `assistant_profile/contracts/agent-contracts.schema.json`: JSON Schema v2 cho
+  RouteDecision/TaskEnvelope/ResultEnvelope — nội dung thật sự đi vào Kanban
+  task body/comment/metadata (`kanban_create`, `kanban_comment`,
+  `kanban_complete`), không phải một registry riêng của Hermes;
 - ba JSON examples cùng thư mục: route, task và result mẫu.
+
+Không có registry YAML riêng ở tầng repo cho danh sách profile/route/workflow —
+Hermes không đọc dạng file đó. Mapping capability → profile và thứ tự
+coder → reviewer chỉ tồn tại ở hai nơi thật: `--description` lúc tạo profile
+(Kanban orchestrator dùng để route) và nội dung `SOUL.md`/policy nạp vào từng
+profile (xem §5 "SOUL.md và description mỗi profile").
 
 Human docs:
 
